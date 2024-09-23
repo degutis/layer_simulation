@@ -18,7 +18,7 @@ class VoxelResponses:
         self.sd_signal_class1, self.sd_signal_class2 = sd_signal_class1, sd_signal_class2 # not actually used now
         self.sd_noise = sd_noise
 
-        self.baseline_signal = np.random.normal(100, 6, size=(self.numTrials_per_class*2, self.voxels))
+        self.baseline_signal = np.random.normal(50, 10, size=(self.numTrials_per_class*2, self.voxels))
 
         mean1 = np.ones(self.voxels) * 10
         cov1 = np.identity(self.voxels)  # might want to introduce some spatial dependencies within the pattern
@@ -26,7 +26,7 @@ class VoxelResponses:
 
         mean2 = np.ones(self.voxels) * 10
         cov2 = np.identity(self.voxels)  # might want to introduce some spatial dependencies within the pattern
-        activity_row_class2 = np.random.multivariate_normal(mean1, cov1) 
+        activity_row_class2 = np.random.multivariate_normal(mean2, cov2) 
 
         #activity_row_class1 = np.random.normal(0.1, self.sd_signal_class1, (1, voxels))
         #activity_row_class2 = np.random.normal(0.1, self.sd_signal_class2, (1, voxels))
@@ -75,9 +75,9 @@ class VoxelResponses:
         print(f"Accuracy: {accuracy * 100:.2f}%")       
 
 
-vox1 = VoxelResponses(seed=1, sd_noise=1)
-
-vox1.plotPattern()
+for seed in range(10):
+    vox1 = VoxelResponses(seed=seed, sd_noise=1)
+    vox1.runSVM_classifier()
 
 
 
