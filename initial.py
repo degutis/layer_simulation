@@ -11,8 +11,10 @@ from sklearn.metrics import accuracy_score
 
 
 class VoxelResponses:
-    def __init__(self, seed, rho_c1, rho_c2, N=100, L = 24, deltaRelative=0.5, fwhm = 1.02, beta = 0.035, samplingVox=0.8, numTrials_per_class=40):
+    def __init__(self, seed, rho_c1, rho_c2, N=512, L = 24, deltaRelative=0.5, fwhm = 1.02, beta = 0.035, samplingVox=1, numTrials_per_class=60):
         
+        # 64:3 ratio between N and L.
+
         self.N = N   
         self.L = L     
         self.deltaRelative = deltaRelative
@@ -23,14 +25,16 @@ class VoxelResponses:
         self.seed = seed
         self.numTrials_per_class = numTrials_per_class
 
-        activity_row_class1 = self.__generateInitialColumnarPattern__(seed, rho_c1)
-        activity_row_class2 = self.__generateInitialColumnarPattern__(seed*2, rho_c2)
+        self.activity_row_class1 = self.__generateInitialColumnarPattern__(seed, rho_c1)
+        self.activity_row_class2 = self.__generateInitialColumnarPattern__(seed*2, rho_c2)
 
-        activity_matrix_class1 = np.tile(activity_row_class1, (self.numTrials_per_class, 1))
-        activity_matrix_class2 = np.tile(activity_row_class2, (self.numTrials_per_class, 1))
+        activity_matrix_class1 = np.tile(self.activity_row_class1, (self.numTrials_per_class, 1))
+        activity_matrix_class2 = np.tile(self.activity_row_class2, (self.numTrials_per_class, 1))
         activity_matrix_combined = np.concatenate((activity_matrix_class1, activity_matrix_class2), axis=0)
         
-        self.activity_matrix_combined_with_noise = self.__generateNoiseMatrix__(activity_matrix_combined)
+        #self.activity_matrix_combined_with_noise = self.__generateNoiseMatrix__(activity_matrix_combined)
+
+        self.activity_matrix_combined_with_noise = activity_matrix_combined
 
         class1 = np.full((numTrials_per_class, 1), 0) # class 1
         class2 = np.full((numTrials_per_class, 1), 1) # class 2
@@ -55,11 +59,10 @@ class VoxelResponses:
         # w = 1 Size of voxel
 
         sim = cf.simulation(self.N, self.L, seed)
-        gwn = sim.gwnoise(); 
+        gwn = sim.gwnoise();
         columnPattern, _ = sim.columnPattern(rho,self.deltaRelative,gwn)
         boldPattern, _, _ = sim.bold(self.fwhm,self.beta,columnPattern)
         mriPattern = sim.mri(self.w, boldPattern)
-
         return mriPattern.reshape(-1)
         
 
@@ -97,12 +100,8 @@ class VoxelResponses:
         svm_model = SVC(kernel='linear')  
         svm_model.fit(X_train, y_train)
         y_pred = svm_model.predict(X_test)
-        accuracy = accuracy_score(y_test, y_pred)
-        print(f"Accuracy: {accuracy * 100:.2f}%")       
-
-
-vox1 = VoxelResponses(seed=10, sd_noise=1)
-
+        self.accuracy = accuracy_score(y_test, y_pred)
+        print(f"Accuracy: {self.accuracy * 100:.2f}%")       
 
 
 

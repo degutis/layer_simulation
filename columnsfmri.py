@@ -247,3 +247,9 @@ def noiseModel(V,TR,nT,differentialFlag,*args,**kwargs):
     k = k * F
     sigma = np.sqrt((4/(k**2*V**2*nT)) + ((2*l**2)/(nT/2)**2)*s)
     return sigma
+
+def meanpower(s):
+    """
+    calculates the mean power of a signal or pattern
+    """
+    return np.mean(np.abs(s**2))
