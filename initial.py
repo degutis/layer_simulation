@@ -76,7 +76,7 @@ class VoxelResponses:
 
 
 for seed in range(10):
-    vox1 = VoxelResponses(seed=seed, sd_noise=1)
+    vox1 = VoxelResponses(seed=seed, sd_noise=10)
     vox1.runSVM_classifier()
 
 
