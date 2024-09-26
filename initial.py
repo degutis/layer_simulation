@@ -2,43 +2,35 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+import columnsfmri as cf
+import vasc_model as vm
+
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
 
 
 class VoxelResponses:
-    def __init__(self, seed, voxels=100, numTrials_per_class=40, sd_signal_class1 = 10, sd_signal_class2 = 10, sd_noise= 20):
+    def __init__(self, seed, rho_c1, rho_c2, N=100, L = 24, deltaRelative=0.5, fwhm = 1.02, beta = 0.035, samplingVox=0.8, numTrials_per_class=40):
         
+        self.N = N   
+        self.L = L     
+        self.deltaRelative = deltaRelative
+        self.fwhm = fwhm
+        self.beta = beta
+        self.w = samplingVox # =1
+
         self.seed = seed
-        np.random.seed(self.seed)
+        self.numTrials_per_class = numTrials_per_class
 
-        self.voxels, self.numTrials_per_class = voxels, numTrials_per_class
-
-        self.sd_signal_class1, self.sd_signal_class2 = sd_signal_class1, sd_signal_class2 # not actually used now
-        self.sd_noise = sd_noise
-
-        self.baseline_signal = np.random.normal(50, 10, size=(self.numTrials_per_class*2, self.voxels))
-
-        mean1 = np.ones(self.voxels) * 10
-        cov1 = np.identity(self.voxels)  # might want to introduce some spatial dependencies within the pattern
-        activity_row_class1 = np.random.multivariate_normal(mean1, cov1) 
-
-        mean2 = np.ones(self.voxels) * 10
-        cov2 = np.identity(self.voxels)  # might want to introduce some spatial dependencies within the pattern
-        activity_row_class2 = np.random.multivariate_normal(mean2, cov2) 
-
-        #activity_row_class1 = np.random.normal(0.1, self.sd_signal_class1, (1, voxels))
-        #activity_row_class2 = np.random.normal(0.1, self.sd_signal_class2, (1, voxels))
+        activity_row_class1 = self.__generateInitialColumnarPattern__(seed, rho_c1)
+        activity_row_class2 = self.__generateInitialColumnarPattern__(seed*2, rho_c2)
 
         activity_matrix_class1 = np.tile(activity_row_class1, (self.numTrials_per_class, 1))
         activity_matrix_class2 = np.tile(activity_row_class2, (self.numTrials_per_class, 1))
-
         activity_matrix_combined = np.concatenate((activity_matrix_class1, activity_matrix_class2), axis=0)
         
-        self.noise = np.random.normal(0, self.sd_noise, size=(numTrials_per_class*2, self.voxels,))  # Standard deviation = 20
-
-        self.activity_matrix_combined_with_noise = activity_matrix_combined + self.noise + self.baseline_signal
+        self.activity_matrix_combined_with_noise = self.__generateNoiseMatrix__(activity_matrix_combined)
 
         class1 = np.full((numTrials_per_class, 1), 0) # class 1
         class2 = np.full((numTrials_per_class, 1), 1) # class 2
@@ -49,11 +41,45 @@ class VoxelResponses:
         self.activity_matrix_permuted = self.activity_matrix_combined_with_noise[self.permutation_indices, :]
         self.y_permuted = y[self.permutation_indices]
 
-        ###
+    def __generateInitialColumnarPattern__(self, seed, rho):
+        
+        # N, L, seed = 100, 24, 1
+        # N - size of grid. L - size of patch in mm
+        
+        # rho,deltaRelative = 1, 0.5  
+        # Rho is the main pattern frequency, delta specifies the amount of irregularity
+        
+        # fwhm = 1.02; deltaRelative = 0.035  
+        # spatial BOLD response with a FWHM of 1.02 mm (7T GE), and a corresponding single condition average response amplitude of 3.5%.       
+
+        # w = 1 Size of voxel
+
+        sim = cf.simulation(self.N, self.L, seed)
+        gwn = sim.gwnoise(); 
+        columnPattern, _ = sim.columnPattern(rho,self.deltaRelative,gwn)
+        boldPattern, _, _ = sim.bold(self.fwhm,self.beta,columnPattern)
+        mriPattern = sim.mri(self.w, boldPattern)
+
+        return mriPattern.reshape(-1)
+        
+
+    def __generateNoiseMatrix__(self, mriPattern, sliceThickness = 2.5, TR = 2, nT = 1000, differentialFlag = True, noiseType="7T"):    
+        
+        V = self.w**2*sliceThickness
+        SNR = 1/cf.noiseModel(V,TR,nT,differentialFlag,noiseType=noiseType)
+   
+        return mriPattern + (1/SNR) * np.random.randn(*mriPattern.shape)
+   
+    def calculateTSNR(self):
+
         mean_signal = np.mean(self.activity_matrix_permuted, axis=-1)
         std_noise = np.std(self.activity_matrix_permuted, axis=-1)
         tsnr = np.divide(mean_signal, std_noise, where=std_noise!=0)
         print(f"Mean tSNR across the brain: {np.mean(tsnr)}")
+
+
+    def combineLayersIntoMatrix(self):
+        return 
 
     def plotPattern(self):
         
@@ -75,9 +101,10 @@ class VoxelResponses:
         print(f"Accuracy: {accuracy * 100:.2f}%")       
 
 
-for seed in range(10):
-    vox1 = VoxelResponses(seed=seed, sd_noise=10)
-    vox1.runSVM_classifier()
+vox1 = VoxelResponses(seed=10, sd_noise=1)
+
+
+
 
 
 

@@ -28,6 +28,7 @@ class vascModel:
     def __init__(self, orig_response, layers=10):
 
         self.layers = layers
+        self.orig_response = orig_response
 
         if layers!=10:
             self.p2t = self.__calculate_p2t__(6.3, self.layers, 10)
