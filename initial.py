@@ -8,6 +8,7 @@ import vasc_model as vm
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
+from sklearn.preprocessing import StandardScaler
 
 
 class VoxelResponses:
@@ -23,18 +24,19 @@ class VoxelResponses:
         self.w = samplingVox # =1
 
         self.seed = seed
+        np.random.seed(self.seed)
         self.numTrials_per_class = numTrials_per_class
 
         self.activity_row_class1 = self.__generateInitialColumnarPattern__(seed, rho_c1)
-        self.activity_row_class2 = self.__generateInitialColumnarPattern__(seed*2, rho_c2)
+        self.activity_row_class2 = self.__generateInitialColumnarPattern__(seed+13086, rho_c2)
 
         activity_matrix_class1 = np.tile(self.activity_row_class1, (self.numTrials_per_class, 1))
         activity_matrix_class2 = np.tile(self.activity_row_class2, (self.numTrials_per_class, 1))
         activity_matrix_combined = np.concatenate((activity_matrix_class1, activity_matrix_class2), axis=0)
         
-        #self.activity_matrix_combined_with_noise = self.__generateNoiseMatrix__(activity_matrix_combined)
+        self.activity_matrix_combined_with_noise = self.__generateNoiseMatrix__(activity_matrix_combined)
 
-        self.activity_matrix_combined_with_noise = activity_matrix_combined
+        #self.activity_matrix_combined_with_noise = activity_matrix_combined
 
         class1 = np.full((numTrials_per_class, 1), 0) # class 1
         class2 = np.full((numTrials_per_class, 1), 1) # class 2
@@ -59,7 +61,7 @@ class VoxelResponses:
         # w = 1 Size of voxel
 
         sim = cf.simulation(self.N, self.L, seed)
-        gwn = sim.gwnoise();
+        gwn = sim.gwnoise()
         columnPattern, _ = sim.columnPattern(rho,self.deltaRelative,gwn)
         boldPattern, _, _ = sim.bold(self.fwhm,self.beta,columnPattern)
         mriPattern = sim.mri(self.w, boldPattern)
@@ -70,8 +72,10 @@ class VoxelResponses:
         
         V = self.w**2*sliceThickness
         SNR = 1/cf.noiseModel(V,TR,nT,differentialFlag,noiseType=noiseType)
-   
-        return mriPattern + (1/SNR) * np.random.randn(*mriPattern.shape)
+
+        rg = np.random.RandomState(self.seed+56)
+
+        return mriPattern + (1/SNR) * rg.randn(*mriPattern.shape)
    
     def calculateTSNR(self):
 
@@ -88,19 +92,30 @@ class VoxelResponses:
         
         plt.imshow(self.activity_matrix_combined_with_noise, aspect='auto', cmap='hot', interpolation='nearest')
         plt.colorbar(label="Signal Intensity")
-        plt.title(f"Synthetic fMRI Data (1D Space with {self.voxels} Voxels)")
+        plt.title(f"Synthetic fMRI Data (1D Space with {self.N} Voxels)")
         plt.xlabel("Time")
         plt.ylabel("Voxel (Space)")
         plt.savefig('../derivatives/pattern_simulation/pattern.png')
 
-    def runSVM_classifier(self, test_size=0.2):
 
+    #def plotAvTimeCourse(self):
+
+
+    def runSVM_classifier(self, test_size=0.2):
+        
+        np.random.seed(self.seed)
         self.test_size = test_size
-        X_train, X_test, y_train, y_test = train_test_split(self.activity_matrix_permuted, np.ravel(self.y_permuted), test_size = self.test_size, random_state=self.seed)
+        print(self.seed)
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.activity_matrix_permuted, np.ravel(self.y_permuted), test_size = self.test_size, random_state=self.seed)
+        
+        scaler = StandardScaler()
+        self.X_train = scaler.fit_transform(self.X_train)
+        self.X_test = scaler.transform(self.X_test)
+        
         svm_model = SVC(kernel='linear')  
-        svm_model.fit(X_train, y_train)
-        y_pred = svm_model.predict(X_test)
-        self.accuracy = accuracy_score(y_test, y_pred)
+        svm_model.fit(self.X_train, self.y_train)
+        self.y_pred = svm_model.predict(self.X_test)
+        self.accuracy = accuracy_score(self.y_test, self.y_pred)
         print(f"Accuracy: {self.accuracy * 100:.2f}%")       
 
 

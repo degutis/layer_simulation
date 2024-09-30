@@ -38,8 +38,8 @@ class simulation:
         simulation grid. To be used for simulating a column pattern using 
         columnPattern.
         """
-        np.random.seed(self.seed)
-        return np.random.randn(self.N,self.N) + 1j* np.random.randn(self.N,self.N)
+        rng = np.random.RandomState(self.seed)
+        return rng.randn(self.N,self.N) + 1j* rng.randn(self.N,self.N)
     
     def ft2(self,y):
         """
