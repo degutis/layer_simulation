@@ -174,7 +174,7 @@ class simulation:
         ax.set_title(title)
         ax.set_xlabel('position [mm]')
         fig.colorbar(im,ax=ax)
-        plt.savefig('../derivatives/pattern_simulation/'+title.replace(" ","") +'.png')
+        #plt.savefig('../derivatives/pattern_simulation/'+title.replace(" ","") +'.png')
 
 
 def noiseModel(V,TR,nT,differentialFlag,*args,**kwargs):
