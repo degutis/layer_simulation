@@ -37,9 +37,12 @@ class vascModel:
 
         self.matrix = np.eye(self.layers)
         lower_triangle = np.tril(np.ones((self.layers, self.layers)), k=-1)
-        self.matrix = self.matrix + (1/self.p2)*lower_triangle
+        self.matrix = self.matrix + (1/self.p2t)*lower_triangle
 
-        self.outputMatrix = self.matrix * self.orig_response
+        #self.outputMatrix = self.matrix * self.orig_response
+        self.outputMatrix = np.einsum('ij,jkl->ikl', self.matrix, self.orig_response)
+
+
 
     def __calculate_p2t__(p2t_model, n, n_model):
         
