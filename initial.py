@@ -1,6 +1,7 @@
 import numpy as np 
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 import columnsfmri as cf
 import vasc_model as vm
@@ -27,8 +28,8 @@ class VoxelResponses:
         np.random.seed(self.seed)
         self.numTrials_per_class = numTrials_per_class
 
-        self.activity_row_class1 = self.__generateInitialColumnarPattern__(seed, rho_c1)
-        self.activity_row_class2 = self.__generateInitialColumnarPattern__(seed+13086, rho_c2)
+        self.activity_row_class1, self.columnPattern1 = self.__generateInitialColumnarPattern__(seed, rho_c1)
+        self.activity_row_class2, self.columnPattern2 = self.__generateInitialColumnarPattern__(seed+13086, rho_c2)
 
         activity_matrix_class1 = np.tile(self.activity_row_class1, (self.numTrials_per_class, 1))
         activity_matrix_class2 = np.tile(self.activity_row_class2, (self.numTrials_per_class, 1))
@@ -65,7 +66,7 @@ class VoxelResponses:
         columnPattern, _ = sim.columnPattern(rho,self.deltaRelative,gwn)
         boldPattern, _, _ = sim.bold(self.fwhm,self.beta,columnPattern)
         mriPattern = sim.mri(self.w, boldPattern)
-        return mriPattern.reshape(-1)
+        return mriPattern.reshape(-1), columnPattern
         
 
     def __generateNoiseMatrix__(self, mriPattern, sliceThickness = 2.5, TR = 2, nT = 1000, differentialFlag = True, noiseType="7T"):    
@@ -90,16 +91,48 @@ class VoxelResponses:
 
     def plotPattern(self):
         
-        plt.imshow(self.activity_matrix_combined_with_noise, aspect='auto', cmap='hot', interpolation='nearest')
-        plt.colorbar(label="Signal Intensity")
-        plt.title(f"Synthetic fMRI Data (1D Space with {self.N} Voxels)")
-        plt.xlabel("Time")
-        plt.ylabel("Voxel (Space)")
+        plt.figure(figsize=(20, 20))
+
+        ax1 = plt.subplot(6,6,(1,2))
+        ax2 = plt.subplot(6,6,(3))
+        ax3 = plt.subplot(6,6,(13,14))
+        ax4 = plt.subplot(6,6,(15))
+        ax5 = plt.subplot(6,6,(10,11))
+
+        color1 = 'green'
+        color2 = 'blue'
+
+        ax1.imshow(self.columnPattern1, aspect='equal', cmap='gray', interpolation='none')
+        ax1.set_title('Columnar pattern #1')
+        ax1.set_ylabel('Grid points')
+        ax1.set_xlabel('Grid points')
+
+        ax3.imshow(self.columnPattern2, aspect='equal', cmap='gray', interpolation='none')
+        ax3.set_title('Columnar pattern #2')
+        ax3.set_ylabel('Grid points')
+        ax3.set_xlabel('Grid points')
+
+        ax2.plot(self.activity_row_class1, color = color1)
+        ax2.set_title('Voxel activation #1')
+        ax2.set_ylabel('Signal')
+        ax2.set_xlabel('Voxels')
+
+        ax4.plot(self.activity_row_class2, color = color2)
+        ax4.set_title('Voxel activation #2')
+        ax4.set_ylabel('Signal')
+        ax4.set_xlabel('Voxels')
+
+        ax5.imshow(self.activity_matrix_permuted, aspect='auto', cmap='gray', interpolation='none')
+        for i in range(self.activity_matrix_permuted.shape[0]):
+            rect_color = color1 if self.y_permuted[i] == 0 else color2
+            rect = patches.Rectangle((0, i-0.5), self.activity_matrix_permuted.shape[1], 1, linewidth=0.5, edgecolor=rect_color, facecolor='none')
+            ax5.add_patch(rect)       
+        ax5.set_title(f"Synthetic fMRI data for all trials)")
+        ax5.set_ylabel('Trials')
+        ax5.set_xlabel('Voxels')
+
+        plt.tight_layout()
         plt.savefig('../derivatives/pattern_simulation/pattern.png')
-
-
-    #def plotAvTimeCourse(self):
-
 
     def runSVM_classifier(self, test_size=0.2):
         
