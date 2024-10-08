@@ -6,10 +6,12 @@ import matplotlib.patches as patches
 import columnsfmri as cf
 import vasc_model as vm
 
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+
 
 
 class VoxelResponses:
@@ -71,11 +73,11 @@ class VoxelResponses:
     def __generateNoiseMatrix__(self, mriPattern, sliceThickness = 2.5, TR = 2, nT = 1000, differentialFlag = True, noiseType="7T"):    
         
         V = self.w**2*sliceThickness
-        SNR = 1/cf.noiseModel(V,TR,nT,differentialFlag,noiseType=noiseType)
+        self.SNR = 1/cf.noiseModel(V,TR,nT,differentialFlag,noiseType=noiseType)
 
         rg = np.random.RandomState(self.seed+56)
 
-        return mriPattern + (1/SNR) * rg.randn(*mriPattern.shape)
+        return mriPattern + (1/self.SNR) * rg.randn(*mriPattern.shape)
    
 
     def calculateTSNR(self):
@@ -132,27 +134,94 @@ class VoxelResponses:
         plt.savefig('../derivatives/pattern_simulation/pattern.png')
 
 
-    def runSVM_classifier(self, test_size=0.2):
+    def runSVM_classifier(self, n_splits=5):
+        """
+        Runs an SVM classifier using cross-validation and a standard scaler
+        """
+
+        self.n_splits = n_splits
+
+        pipeline = Pipeline([
+            ('scaler', StandardScaler()),
+            ('svc', SVC())               
+        ])
+
+        X = self.activity_matrix_permuted
+        y = np.ravel(self.y_permuted)
+
+        cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state = self.seed)
+        self.accuracy = np.mean(cross_val_score(pipeline, X, y, cv=cv))
+
+
+    def runSVM_classifier_acrossLayers(self, layer_responses, n_splits=5):
+        """
+        Runs an SVM classifier for each layer using cross-validation and a standard scaler
+
+        Parameters:
+        layer_responses : float : a layer x voxel x trial matrix
+        seed: int : random seed
+        n_splits: int: number of times to split the data
+
+        Returns:
+        scores : meaned cross validated accuracy scores for each layer. [Layers, ] vector (0 index - deepest layer)
+        """
+   
+        self.n_splits = n_splits
+
+        pipeline = Pipeline([
+            ('scaler', StandardScaler()),
+            ('svc', SVC())               
+        ])
+
+        layers = layer_responses.shape[0]
+        y = np.ravel(self.y_permuted)
+        scores = np.empty(layers, dtype=float)
         
-        np.random.seed(self.seed)
-        self.test_size = test_size
-        print(self.seed)
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.activity_matrix_permuted, np.ravel(self.y_permuted), test_size = self.test_size, random_state=self.seed)
-        
-        scaler = StandardScaler()
-        self.X_train = scaler.fit_transform(self.X_train)
-        self.X_test = scaler.transform(self.X_test)
-        
-        svm_model = SVC(kernel='linear')  
-        svm_model.fit(self.X_train, self.y_train)
-        self.y_pred = svm_model.predict(self.X_test)
-        self.accuracy = accuracy_score(self.y_test, self.y_pred)
-        print(f"Accuracy: {self.accuracy * 100:.2f}%")       
+        for layer in range(layers):
+
+            X = layer_responses[layer,:,:].transpose((1,0))
+            cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state = self.seed+layer)
+            scores[layer] = np.mean(cross_val_score(pipeline, X, y, cv=cv))
+
+        return scores
+
 
     def calculateDrainingEffect_samePatternAcrossLayers(self, layers=10):
+        """
+        Repeats the same underlying columnar pattern across all layers and computes
+        the draining vein effect using vasc_model
+
+        Parameters:
+        layers : int : number of layers to estimate the draining vein effect on
+    
+        Returns:
+        class : parameters and main output matrix from vasc_model
+        """
 
         layers_samePattern = np.repeat(self.activity_matrix_permuted[:,:,np.newaxis], layers, axis=2).transpose((2,1,0))
         return vm.vascModel(layers_samePattern, layers=layers)
 
+
+
+    def calculateDrainingEffect_patternOnlyInSingleLayer(self, signalLayer, seed, layers=10):
+        """
+        Repeats the same underlying columnar pattern across all layers and computes
+        the draining vein effect using vasc_model
+
+        Parameters:
+        layers : int : number of layers to estimate the draining vein effect on
+    
+        Returns:
+        class : parameters and main output matrix from vasc_model
+        """
+
+        rg = np.random.RandomState(seed)
+        noise = (1/self.SNR) * rg.randn(self.activity_matrix_permuted.shape[0],self.activity_matrix_permuted.shape[1],layers-1)
+        activity_matrix_permuted_extra_dim = self.activity_matrix_permuted[:,:,np.newaxis]
+        combinedLayersMatrix = np.concatenate((activity_matrix_permuted_extra_dim, noise), axis=2)
+        combinedLayersMatrix[:,:,[0, signalLayer]] = combinedLayersMatrix[:,:,[signalLayer, 0]]
+        combinedLayersMatrix = combinedLayersMatrix.transpose((2,1,0))
+
+        return vm.vascModel(combinedLayersMatrix, layers=layers)
 
 
