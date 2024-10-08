@@ -152,7 +152,7 @@ class VoxelResponses:
     def calculateDrainingEffect_samePatternAcrossLayers(self, layers=10):
 
         layers_samePattern = np.repeat(self.activity_matrix_permuted[:,:,np.newaxis], layers, axis=2).transpose((2,1,0))
-        return vm.vascModel(layers_samePattern)
+        return vm.vascModel(layers_samePattern, layers=layers)
 
 
 

@@ -25,13 +25,13 @@ class vascModel:
         Calculates the value of p2t based on the base value, number of layers, and base number of layers.
     """
 
-    def __init__(self, orig_response, layers=10):
+    def __init__(self, orig_response, layers):
 
         self.layers = layers
         self.orig_response = orig_response
 
         if layers!=10:
-            self.p2t = self.__calculate_p2t__(6.3, self.layers, 10)
+            self.p2t = self.__calculate_p2t__(6.3, layers, 10)
         else:
             self.p2t = 6.3
 
@@ -44,15 +44,15 @@ class vascModel:
 
 
 
-    def __calculate_p2t__(p2t_model, n, n_model):
+    def __calculate_p2t__(self, p2t_model, n, n_model):
         
         """
         Calculate the value of p2t and round to the nearest two decimals:
     
         Parameters:
-        p2t_model : float : The value of p2t_model
-        n : float : The value of n
-        n_model : float : The value of n_model
+        p2t_model : float : Original p2t value
+        n : float : New layer value
+        n_model : float : Original layer value
     
         Returns:
         float : The calculated value of p2t
