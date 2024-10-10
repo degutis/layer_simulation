@@ -131,7 +131,7 @@ class VoxelResponses:
         ax5.set_xlabel('Voxels')
 
         plt.tight_layout()
-        plt.savefig(f'../derivatives/pattern_simulation/{FigTitle}.png')
+        plt.savefig(f'../derivatives/pattern_simulation/WorkflowPattern_{FigTitle}.jpeg')
         plt.close(fig)
 
     def runSVM_classifier(self, n_splits=5):
