@@ -88,9 +88,9 @@ class VoxelResponses:
         print(f"Mean tSNR across the brain: {np.mean(tsnr)}")
 
 
-    def plotPattern(self):
+    def plotPattern(self,FigTitle):
         
-        plt.figure(figsize=(20, 20))
+        fig = plt.figure(figsize=(20, 20))
 
         ax1 = plt.subplot(6,6,(1,2))
         ax2 = plt.subplot(6,6,(3))
@@ -131,8 +131,8 @@ class VoxelResponses:
         ax5.set_xlabel('Voxels')
 
         plt.tight_layout()
-        plt.savefig('../derivatives/pattern_simulation/pattern.png')
-
+        plt.savefig(f'../derivatives/pattern_simulation/{FigTitle}.png')
+        plt.close(fig)
 
     def runSVM_classifier(self, n_splits=5):
         """

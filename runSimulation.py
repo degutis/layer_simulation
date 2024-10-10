@@ -23,7 +23,8 @@ for it in range(iterations):
     for i,r in enumerate(rho_values):
     
         vox = sim.VoxelResponses(it,r,r, numTrials_per_class=numTrials_per_class, beta=beta)
-    
+        vox.plotPattern(f"VoxelResponses_Iteration_{it}_Rho_{r}")
+
         drainedResp = vox.calculateDrainingEffect_samePatternAcrossLayers(layers=layers)    
         accuracy_samePattern[:,it,i] = vox.runSVM_classifier_acrossLayers(drainedResp.outputMatrix)   
     
