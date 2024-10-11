@@ -57,9 +57,8 @@ class VoxelResponses:
         # rho,deltaRelative = 1, 0.5  
         # Rho is the main pattern frequency, delta specifies the amount of irregularity
         
-        # fwhm = 1.02; deltaRelative = 0.035  
+        # fwhm = 1.02; beta = 0.035  
         # spatial BOLD response with a FWHM of 1.02 mm (7T GE), and a corresponding single condition average response amplitude of 3.5%.       
-
         # w = 1 Size of voxel
 
         sim = cf.simulation(self.N, self.L, seed)
@@ -70,8 +69,10 @@ class VoxelResponses:
         return mriPattern.reshape(-1), columnPattern
         
 
-    def __generateNoiseMatrix__(self, mriPattern, sliceThickness = 2.5, TR = 2, nT = 1000, differentialFlag = True, noiseType="7T"):    
+    def __generateNoiseMatrix__(self, mriPattern, sliceThickness = 1, TR = 2, nT = 1, differentialFlag = False, noiseType="7T"):    
         
+        # nt - number acquisitions - otherwise have autocorrelation. 
+
         V = self.w**2*sliceThickness
         self.SNR = 1/cf.noiseModel(V,TR,nT,differentialFlag,noiseType=noiseType)
 
@@ -88,7 +89,7 @@ class VoxelResponses:
         print(f"Mean tSNR across the brain: {np.mean(tsnr)}")
 
 
-    def plotPattern(self,FigTitle):
+    def plotPattern(self,FigTitle, save=True, show=False):
         
         fig = plt.figure(figsize=(15, 15))
 
@@ -129,8 +130,12 @@ class VoxelResponses:
         ax5.set_title(f"Synthetic fMRI data for all trials)")
         ax5.set_ylabel('Trials')
         ax5.set_xlabel('Voxels')
-
-        fig.savefig(f'../derivatives/pattern_simulation/WorkflowPattern_{FigTitle}.png',format="png")
+        
+        if save==True:
+            fig.savefig(f'../derivatives/pattern_simulation/WorkflowPattern_{FigTitle}.png',format="png")
+        if show==True:
+            plt.show()
+        
         plt.close(fig)
 
     def runSVM_classifier(self, n_splits=5):
