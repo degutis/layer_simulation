@@ -77,6 +77,6 @@ class vascModel:
 
             axs[1, i].imshow(patternB[i], cmap='gray')
 
-        plt.savefig(f'../derivatives/laminarPattern/LaminarResponse_{FigTitle}.jpeg')
+        fig.savefig(f'../derivatives/laminarPattern/LaminarResponse_{FigTitle}.png',format="png")
         plt.close(fig)
 

@@ -90,7 +90,7 @@ class VoxelResponses:
 
     def plotPattern(self,FigTitle):
         
-        fig = plt.figure(figsize=(20, 20))
+        fig = plt.figure(figsize=(15, 15))
 
         ax1 = plt.subplot(6,6,(1,2))
         ax2 = plt.subplot(6,6,(3))
@@ -130,8 +130,7 @@ class VoxelResponses:
         ax5.set_ylabel('Trials')
         ax5.set_xlabel('Voxels')
 
-        plt.tight_layout()
-        plt.savefig(f'../derivatives/pattern_simulation/WorkflowPattern_{FigTitle}.jpeg')
+        fig.savefig(f'../derivatives/pattern_simulation/WorkflowPattern_{FigTitle}.png',format="png")
         plt.close(fig)
 
     def runSVM_classifier(self, n_splits=5):

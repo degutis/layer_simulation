@@ -34,7 +34,7 @@ def plotViolin(accuracy, rho_values, nSize, title):
             ax.set_ylabel('')
 
     plt.tight_layout()
-    plt.savefig(f"../derivatives/results/{title}.jpeg")
+    fig.savefig(f"../derivatives/results/{title}.png",format="png")
     plt.close(fig)
 
 

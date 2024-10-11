@@ -6,7 +6,7 @@ import numpy as np
 cf.createFolders()
 
 # Define some parameters
-iterations=2
+iterations=30
 layers = 3
 rho_values = [0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3]
 rval = len(rho_values)
@@ -22,25 +22,27 @@ accuracy_onePatternSup = np.empty((layers,iterations,rval))
 for it in range(iterations):
     print(it)
     for i,r in enumerate(rho_values):
-    
+        
+        FigTitle = f"_{str(it)}_Rho_{str(r).replace('.','')}"
+
         vox = sim.VoxelResponses(it,r,r, numTrials_per_class=numTrials_per_class, beta=beta)
-        vox.plotPattern(f"Iteration_{it}_Rho_{r}")
+        vox.plotPattern(FigTitle)
 
         drainedResp = vox.calculateDrainingEffect_samePatternAcrossLayers(layers=layers)    
         accuracy_samePattern[:,it,i] = vox.runSVM_classifier_acrossLayers(drainedResp.outputMatrix)   
-        drainedResp.plotLaminarResp(vox.y_permuted, f"SamePattern_{it}_Rho_{r}")
+        drainedResp.plotLaminarResp(vox.y_permuted, "SamePattern"+FigTitle)
 
         drainingVeinDeep = vox.calculateDrainingEffect_patternOnlyInSingleLayer(0, it+10, layers=layers)
         accuracy_onePatternDeep[:,it,i] = vox.runSVM_classifier_acrossLayers(drainingVeinDeep.outputMatrix)   
-        drainingVeinDeep.plotLaminarResp(vox.y_permuted, f"DeepPattern_{it}_Rho_{r}")
+        drainingVeinDeep.plotLaminarResp(vox.y_permuted, "DeepPattern"+FigTitle)
     
         drainingVeinMiddle = vox.calculateDrainingEffect_patternOnlyInSingleLayer(1, it+20, layers=layers)
         accuracy_onePatternMiddle[:,it,i] = vox.runSVM_classifier_acrossLayers(drainingVeinMiddle.outputMatrix)   
-        drainingVeinMiddle.plotLaminarResp(vox.y_permuted, f"MiddlePattern_{it}_Rho_{r}")
+        drainingVeinMiddle.plotLaminarResp(vox.y_permuted, "MiddlePattern"+FigTitle)
     
         drainingVeinSup = vox.calculateDrainingEffect_patternOnlyInSingleLayer(2, it+30, layers=layers)
         accuracy_onePatternSup[:,it,i] = vox.runSVM_classifier_acrossLayers(drainingVeinSup.outputMatrix)   
-        drainingVeinSup.plotLaminarResp(vox.y_permuted, f"SupPattern_{it}_Rho_{r}")
+        drainingVeinSup.plotLaminarResp(vox.y_permuted, "SupPattern"+FigTitle)
 
 nSize = [1,7]
 plotResults.plotViolin(accuracy_samePattern, rho_values, nSize, "SamePatternAcrossLayers")
