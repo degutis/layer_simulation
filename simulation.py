@@ -24,17 +24,17 @@ class VoxelResponses:
         self.deltaRelative = deltaRelative
         self.fwhm = fwhm
         self.beta = beta
-        self.w = samplingVox # =1
+        self.w = samplingVox
 
         self.seed = seed
         np.random.seed(self.seed)
         self.numTrials_per_class = numTrials_per_class
 
-        self.activity_row_class1, self.columnPattern1 = self.__generateInitialColumnarPattern__(seed, rho_c1)
-        self.activity_row_class2, self.columnPattern2 = self.__generateInitialColumnarPattern__(seed+13086, rho_c2)
+        self.activity_row_class1  = self.__generateLaminarColumnarPattern__(seed, rho_c1)
+        self.activity_row_class2  = self.__generateLaminarColumnarPattern__(seed+13086, rho_c2)
 
-        activity_matrix_class1 = np.tile(self.activity_row_class1, (self.numTrials_per_class, 1))
-        activity_matrix_class2 = np.tile(self.activity_row_class2, (self.numTrials_per_class, 1))
+        activity_matrix_class1 = np.tile(self.activity_row_class1, (self.numTrials_per_class, 1, 1))
+        activity_matrix_class2 = np.tile(self.activity_row_class2, (self.numTrials_per_class, 1, 1))
         activity_matrix_combined = np.concatenate((activity_matrix_class1, activity_matrix_class2), axis=0)
         
         self.activity_matrix_combined_with_noise = self.__generateNoiseMatrix__(activity_matrix_combined)
@@ -45,8 +45,31 @@ class VoxelResponses:
         y = np.concatenate((class1, class2), axis=0)
         self.permutation_indices = np.random.permutation(self.activity_matrix_combined_with_noise.shape[0])
 
-        self.activity_matrix_permuted = self.activity_matrix_combined_with_noise[self.permutation_indices, :]
+        self.activity_matrix_permuted = self.activity_matrix_combined_with_noise[self.permutation_indices, :, :]
         self.y_permuted = y[self.permutation_indices]
+
+
+    def __generateLaminarColumnarPattern__(self, seed, rho, fwhmRange = [0.83, 1.78], layers=3):
+
+        sim = cf.simulation(self.N, self.L, seed)
+        gwn = sim.gwnoise()
+        columnPattern, _ = sim.columnPattern(rho,self.deltaRelative,gwn)
+        boldPattern = np.empty((self.N, self.N, layers))
+        mriPattern = np.empty((self.L, self.L, layers))
+                
+        step = (fwhmRange[1] - fwhmRange[0]) / (layers - 1)
+        fwhm_layers = [fwhmRange[0] + step * i for i in range(layers)]
+
+        for l in range(layers):
+            boldPattern[:, :, l], _, _ = sim.bold(fwhm_layers[l], self.beta,columnPattern)
+
+        drainedSignal = vm.vascModel(boldPattern.transpose((2,1,0)), layers=layers)
+
+        for l2 in range(layers):
+            mriPattern[:, :, l2] = sim.mri(self.w, drainedSignal.outputMatrix.transpose(1,2,0)[:,:,l2])
+
+        return mriPattern.reshape(mriPattern.shape[0]*mriPattern.shape[1],mriPattern.shape[2])        
+
 
 
     def __generateInitialColumnarPattern__(self, seed, rho):
@@ -170,6 +193,9 @@ class VoxelResponses:
         scores : meaned cross validated accuracy scores for each layer. [Layers, ] vector (0 index - deepest layer)
         """
    
+        if layer_responses.shape[0]>20:
+            layer_responses = layer_responses.transpose(2,1,0)
+
         self.n_splits = n_splits
 
         pipeline = Pipeline([
