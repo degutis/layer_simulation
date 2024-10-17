@@ -55,6 +55,15 @@ class VoxelResponses:
 
         return activity_matrix_permuted, y_permuted
 
+    def diffPatternsAcrossColumn_oneDecodable(self, layer_of_interest):
+
+        activity_row_class1  = self.__generateLaminarPatternSingleLayer__(self.seed, self.rho_c1, layer_of_interest)
+        activity_row_class2  = self.__generateLaminarPatternSingleLayer__(self.seed+13086, self.rho_c2, layer_of_interest)
+
+        activity_matrix_permuted, y_permuted = self.__createTrialMatrix__(activity_row_class1, activity_row_class2)
+
+        return activity_matrix_permuted, y_permuted
+
 
     def __generateLaminarPatternsDifferent__(self, seed, rho):
 
@@ -97,11 +106,44 @@ class VoxelResponses:
         return mriPattern.reshape(mriPattern.shape[0]*mriPattern.shape[1],mriPattern.shape[2])        
 
 
+    def __generateLaminarPatternSingleLayer__(self, seed, rho, layer_of_interest):
+
+        boldPattern = np.empty((self.N, self.N, self.layers, self.numTrials_per_class))
+        columnPattern = np.empty((self.N, self.N, self.layers, self.numTrials_per_class))
+        drainedSignal_output = np.empty((self.N, self.N, self.layers, self.numTrials_per_class))
+        mriPattern = np.empty((self.L, self.L, self.layers, self.numTrials_per_class))
+
+        for tr in range(self.numTrials_per_class):
+            for la in range(self.layers):
+                if la==layer_of_interest:
+                    input_seed = seed
+                else:
+                    input_seed = tr*self.layers + la + (seed+1)
+            
+                sim = cf.simulation(self.N, self.L, input_seed)
+                gwn = sim.gwnoise()
+                columnPattern[:,:, la, tr], _ = sim.columnPattern(rho,self.deltaRelative,gwn)
+                boldPattern[:, :, la, tr], _, _ = sim.bold(self.fwhm_layers[la], self.beta,columnPattern[:,:, la, tr])
+
+            drainedSignal = vm.vascModel(boldPattern[:,:,:,tr].transpose((2,1,0)), layers=self.layers)
+            drainedSignal_output[:,:,:,tr] = drainedSignal.outputMatrix.transpose(1,2,0)
+
+            for l2 in range(self.layers):
+                mriPattern[:, :, l2, tr] = sim.mri(self.w, drainedSignal_output[:,:,l2,tr])
+
+            mriPattern_reshaped = mriPattern.reshape(mriPattern.shape[0]*mriPattern.shape[1],mriPattern.shape[2],mriPattern.shape[3])  
+
+        return mriPattern_reshaped.transpose(2,0,1)       
+
+
     def __createTrialMatrix__(self, activity_row_class1, activity_row_class2):
 
-        activity_matrix_class1 = np.tile(activity_row_class1, (self.numTrials_per_class, 1, 1))
-        activity_matrix_class2 = np.tile(activity_row_class2, (self.numTrials_per_class, 1, 1))
-        activity_matrix_combined = np.concatenate((activity_matrix_class1, activity_matrix_class2), axis=0)
+        if activity_row_class1.ndim==2:
+            activity_matrix_class1 = np.tile(activity_row_class1, (self.numTrials_per_class, 1, 1))
+            activity_matrix_class2 = np.tile(activity_row_class2, (self.numTrials_per_class, 1, 1))
+            activity_matrix_combined = np.concatenate((activity_matrix_class1, activity_matrix_class2), axis=0)
+        else:
+            activity_matrix_combined = np.concatenate((activity_row_class1, activity_row_class2), axis=0)
         
         activity_matrix_combined_with_noise = self.__generateNoiseMatrix__(activity_matrix_combined)
 
@@ -109,6 +151,7 @@ class VoxelResponses:
         class2 = np.full((self.numTrials_per_class, 1), 1) # class 2
 
         y = np.concatenate((class1, class2), axis=0)
+        print(activity_matrix_combined_with_noise.shape)
         permutation_indices = np.random.permutation(activity_matrix_combined_with_noise.shape[0])
 
         activity_matrix_permuted = activity_matrix_combined_with_noise[permutation_indices, :, :]

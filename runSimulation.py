@@ -16,7 +16,9 @@ numTrials_per_class = 50
 beta = 0.02
 
 accuracy_samePattern = np.empty((layers,iterations, rval))
-accuracy_diffPattern = np.empty((layers,iterations, rval))
+accuracy_deep = np.empty((layers,iterations, rval))
+accuracy_middle = np.empty((layers,iterations, rval))
+accuracy_superficial = np.empty((layers,iterations, rval))
 
 for it in range(iterations):
     print(it)
@@ -27,9 +29,17 @@ for it in range(iterations):
         X,y = vox.samePatternAcrossColumn()
         accuracy_samePattern[:,it,i] = vox.runSVM_classifier_acrossLayers(X,y)
 
-        X_diff, y_diff = vox.diffPatternsAcrossColumn()
-        accuracy_diffPattern[:,it,i] = vox.runSVM_classifier_acrossLayers(X_diff, y_diff)
+        X_0,y_0 = vox.diffPatternsAcrossColumn_oneDecodable(0)
+        accuracy_deep[:,it,i] = vox.runSVM_classifier_acrossLayers(X_0, y_0)
+        
+        X_1,y_1 = vox.diffPatternsAcrossColumn_oneDecodable(1)
+        accuracy_middle[:,it,i] = vox.runSVM_classifier_acrossLayers(X_1, y_1)
+        
+        X_2,y_2 = vox.diffPatternsAcrossColumn_oneDecodable(2)
+        accuracy_superficial[:,it,i] = vox.runSVM_classifier_acrossLayers(X_2, y_2)
 
 nSize = [1,len(rho_values)]
 plotResults.plotViolin(accuracy_samePattern, rho_values, nSize, "SamePatternAcrossLayers")
-plotResults.plotViolin(accuracy_diffPattern, rho_values, nSize, "DiffPatternAcrossLayers")
+plotResults.plotViolin(accuracy_deep, rho_values, nSize, "DiffPatternAcrossLayers")
+plotResults.plotViolin(accuracy_middle, rho_values, nSize, "DiffPatternAcrossLayers")
+plotResults.plotViolin(accuracy_superficial, rho_values, nSize, "DiffPatternAcrossLayers")
