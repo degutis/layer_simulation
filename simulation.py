@@ -15,7 +15,7 @@ from sklearn.pipeline import Pipeline
 
 
 class VoxelResponses:
-    def __init__(self, seed, rho_c1, rho_c2, N=512, L = 24, deltaRelative=0.5, fwhm = 1.02, beta = 0.035, samplingVox=1, numTrials_per_class=60):
+    def __init__(self, seed, rho_c1, rho_c2, N=512, L = 24, deltaRelative=0.5, fwhm = 1.02, beta = 0.035, samplingVox=1, numTrials_per_class=60, fwhmRange = [0.83, 1.78], layers=3):
         
         # 64:3 ratio between N and L.
 
@@ -25,72 +25,96 @@ class VoxelResponses:
         self.fwhm = fwhm
         self.beta = beta
         self.w = samplingVox
+        self.fwhmRange = fwhmRange
+        self.layers = layers
+        step = (self.fwhmRange[1] - self.fwhmRange[0]) / (self.layers - 1)
+        self.fwhm_layers = [self.fwhmRange[0] + step * i for i in range(self.layers)]
+
+        self.rho_c1 = rho_c1
+        self.rho_c2 = rho_c2
 
         self.seed = seed
         np.random.seed(self.seed)
         self.numTrials_per_class = numTrials_per_class
 
-        self.activity_row_class1  = self.__generateLaminarColumnarPattern__(seed, rho_c1)
-        self.activity_row_class2  = self.__generateLaminarColumnarPattern__(seed+13086, rho_c2)
+    def samePatternAcrossColumn(self):
 
-        activity_matrix_class1 = np.tile(self.activity_row_class1, (self.numTrials_per_class, 1, 1))
-        activity_matrix_class2 = np.tile(self.activity_row_class2, (self.numTrials_per_class, 1, 1))
-        activity_matrix_combined = np.concatenate((activity_matrix_class1, activity_matrix_class2), axis=0)
-        
-        self.activity_matrix_combined_with_noise = self.__generateNoiseMatrix__(activity_matrix_combined)
+        activity_row_class1  = self.__generateLaminarColumnarPattern__(self.seed, self.rho_c1)
+        activity_row_class2  = self.__generateLaminarColumnarPattern__(self.seed+13086, self.rho_c2)
 
-        class1 = np.full((numTrials_per_class, 1), 0) # class 1
-        class2 = np.full((numTrials_per_class, 1), 1) # class 2
+        activity_matrix_permuted, y_permuted = self.__createTrialMatrix__(activity_row_class1, activity_row_class2)
 
-        y = np.concatenate((class1, class2), axis=0)
-        self.permutation_indices = np.random.permutation(self.activity_matrix_combined_with_noise.shape[0])
+        return activity_matrix_permuted, y_permuted
 
-        self.activity_matrix_permuted = self.activity_matrix_combined_with_noise[self.permutation_indices, :, :]
-        self.y_permuted = y[self.permutation_indices]
+    def diffPatternsAcrossColumn(self):
+
+        activity_row_class1  = self.__generateLaminarPatternsDifferent__(self.seed, self.rho_c1)
+        activity_row_class2  = self.__generateLaminarPatternsDifferent__(self.seed+13086, self.rho_c2)
+
+        activity_matrix_permuted, y_permuted = self.__createTrialMatrix__(activity_row_class1, activity_row_class2)
+
+        return activity_matrix_permuted, y_permuted
 
 
-    def __generateLaminarColumnarPattern__(self, seed, rho, fwhmRange = [0.83, 1.78], layers=3):
+    def __generateLaminarPatternsDifferent__(self, seed, rho):
 
-        sim = cf.simulation(self.N, self.L, seed)
-        gwn = sim.gwnoise()
-        columnPattern, _ = sim.columnPattern(rho,self.deltaRelative,gwn)
-        boldPattern = np.empty((self.N, self.N, layers))
-        mriPattern = np.empty((self.L, self.L, layers))
-                
-        step = (fwhmRange[1] - fwhmRange[0]) / (layers - 1)
-        fwhm_layers = [fwhmRange[0] + step * i for i in range(layers)]
+        boldPattern = np.empty((self.N, self.N, self.layers))
+        mriPattern = np.empty((self.L, self.L, self.layers))
+        columnPattern = np.empty((self.N, self.N, self.layers))
 
-        for l in range(layers):
-            boldPattern[:, :, l], _, _ = sim.bold(fwhm_layers[l], self.beta,columnPattern)
+        for la in range(self.layers):
+            sim = cf.simulation(self.N, self.L, seed)
+            gwn = sim.gwnoise()
+            columnPattern[:,:, la], _ = sim.columnPattern(rho,self.deltaRelative,gwn)
+               
+        for l in range(self.layers):
+            boldPattern[:, :, l], _, _ = sim.bold(self.fwhm_layers[l], self.beta,columnPattern[:,:,l])
 
-        drainedSignal = vm.vascModel(boldPattern.transpose((2,1,0)), layers=layers)
+        drainedSignal = vm.vascModel(boldPattern.transpose((2,1,0)), layers=self.layers)
 
-        for l2 in range(layers):
+        for l2 in range(self.layers):
             mriPattern[:, :, l2] = sim.mri(self.w, drainedSignal.outputMatrix.transpose(1,2,0)[:,:,l2])
 
         return mriPattern.reshape(mriPattern.shape[0]*mriPattern.shape[1],mriPattern.shape[2])        
 
 
-
-    def __generateInitialColumnarPattern__(self, seed, rho):
-        
-        # N, L, seed = 100, 24, 1
-        # N - size of grid. L - size of patch in mm
-        
-        # rho,deltaRelative = 1, 0.5  
-        # Rho is the main pattern frequency, delta specifies the amount of irregularity
-        
-        # fwhm = 1.02; beta = 0.035  
-        # spatial BOLD response with a FWHM of 1.02 mm (7T GE), and a corresponding single condition average response amplitude of 3.5%.       
-        # w = 1 Size of voxel
+    def __generateLaminarColumnarPattern__(self, seed, rho):
 
         sim = cf.simulation(self.N, self.L, seed)
         gwn = sim.gwnoise()
         columnPattern, _ = sim.columnPattern(rho,self.deltaRelative,gwn)
-        boldPattern, _, _ = sim.bold(self.fwhm,self.beta,columnPattern)
-        mriPattern = sim.mri(self.w, boldPattern)
-        return mriPattern.reshape(-1), columnPattern
+        boldPattern = np.empty((self.N, self.N, self.layers))
+        mriPattern = np.empty((self.L, self.L, self.layers))
+                
+        for l in range(self.layers):
+            boldPattern[:, :, l], _, _ = sim.bold(self.fwhm_layers[l], self.beta,columnPattern)
+
+        drainedSignal = vm.vascModel(boldPattern.transpose((2,1,0)), layers=self.layers)
+
+        for l2 in range(self.layers):
+            mriPattern[:, :, l2] = sim.mri(self.w, drainedSignal.outputMatrix.transpose(1,2,0)[:,:,l2])
+
+        return mriPattern.reshape(mriPattern.shape[0]*mriPattern.shape[1],mriPattern.shape[2])        
+
+
+    def __createTrialMatrix__(self, activity_row_class1, activity_row_class2):
+
+        activity_matrix_class1 = np.tile(activity_row_class1, (self.numTrials_per_class, 1, 1))
+        activity_matrix_class2 = np.tile(activity_row_class2, (self.numTrials_per_class, 1, 1))
+        activity_matrix_combined = np.concatenate((activity_matrix_class1, activity_matrix_class2), axis=0)
         
+        activity_matrix_combined_with_noise = self.__generateNoiseMatrix__(activity_matrix_combined)
+
+        class1 = np.full((self.numTrials_per_class, 1), 0) # class 1
+        class2 = np.full((self.numTrials_per_class, 1), 1) # class 2
+
+        y = np.concatenate((class1, class2), axis=0)
+        permutation_indices = np.random.permutation(activity_matrix_combined_with_noise.shape[0])
+
+        activity_matrix_permuted = activity_matrix_combined_with_noise[permutation_indices, :, :]
+        y_permuted = y[permutation_indices]
+
+        return activity_matrix_permuted, y_permuted
 
     def __generateNoiseMatrix__(self, mriPattern, sliceThickness = 1, TR = 2, nT = 1, differentialFlag = False, noiseType="7T"):    
         
@@ -104,14 +128,14 @@ class VoxelResponses:
         return mriPattern + (1/self.SNR) * rg.randn(*mriPattern.shape)
    
 
-    def calculateTSNR(self):
+    #def calculateTSNR(self):
 
-        mean_signal = np.mean(self.activity_matrix_permuted, axis=-1)
-        std_noise = np.std(self.activity_matrix_permuted, axis=-1)
-        tsnr = np.divide(mean_signal, std_noise, where=std_noise!=0)
-        print(f"Mean tSNR across the brain: {np.mean(tsnr)}")
+        #mean_signal = np.mean(self.activity_matrix_permuted, axis=-1)
+        #std_noise = np.std(self.activity_matrix_permuted, axis=-1)
+        #tsnr = np.divide(mean_signal, std_noise, where=std_noise!=0)
+        #print(f"Mean tSNR across the brain: {np.mean(tsnr)}")
 
-
+    """
     def plotPattern(self,FigTitle, save=True, show=False):
         
         fig = plt.figure(figsize=(15, 15))
@@ -161,26 +185,9 @@ class VoxelResponses:
         
         plt.close(fig)
 
-    def runSVM_classifier(self, n_splits=5):
-        """
-        Runs an SVM classifier using cross-validation and a standard scaler
-        """
+    """
 
-        self.n_splits = n_splits
-
-        pipeline = Pipeline([
-            ('scaler', StandardScaler()),
-            ('svc', SVC())               
-        ])
-
-        X = self.activity_matrix_permuted
-        y = np.ravel(self.y_permuted)
-
-        cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state = self.seed)
-        self.accuracy = np.mean(cross_val_score(pipeline, X, y, cv=cv))
-
-
-    def runSVM_classifier_acrossLayers(self, layer_responses, n_splits=5):
+    def runSVM_classifier_acrossLayers(self, layer_responses, y_permuted, n_splits=5):
         """
         Runs an SVM classifier for each layer using cross-validation and a standard scaler
 
@@ -204,7 +211,7 @@ class VoxelResponses:
         ])
 
         layers = layer_responses.shape[0]
-        y = np.ravel(self.y_permuted)
+        y = np.ravel(y_permuted)
         scores = np.empty(layers, dtype=float)
         
         for layer in range(layers):
@@ -214,23 +221,6 @@ class VoxelResponses:
             scores[layer] = np.mean(cross_val_score(pipeline, X, y, cv=cv))
 
         return scores
-
-
-    def calculateDrainingEffect_samePatternAcrossLayers(self, layers=10):
-        """
-        Repeats the same underlying columnar pattern across all layers and computes
-        the draining vein effect using vasc_model
-
-        Parameters:
-        layers : int : number of layers to estimate the draining vein effect on
-    
-        Returns:
-        class : parameters and main output matrix from vasc_model
-        """
-
-        layers_samePattern = np.repeat(self.activity_matrix_permuted[:,:,np.newaxis], layers, axis=2).transpose((2,1,0))
-        return vm.vascModel(layers_samePattern, layers=layers)
-
 
 
     def calculateDrainingEffect_patternOnlyInSingleLayer(self, signalLayer, seed, layers=10):
