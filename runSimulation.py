@@ -7,13 +7,13 @@ import numpy as np
 cf.createFolders()
 
 # Define some parameters
-iterations=30
+iterations=10
 layers = 3
-rho_values = [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+rho_values = [0.4, 0.5, 0.6, 0.7, 0.8]
 rval = len(rho_values)
 
 numTrials_per_class = 50
-beta = 0.02
+beta = 0.035
 
 accuracy_samePattern = np.empty((layers,iterations, rval))
 accuracy_deep = np.empty((layers,iterations, rval))
@@ -40,6 +40,6 @@ for it in range(iterations):
 
 nSize = [1,len(rho_values)]
 plotResults.plotViolin(accuracy_samePattern, rho_values, nSize, "SamePatternAcrossLayers")
-plotResults.plotViolin(accuracy_deep, rho_values, nSize, "DiffPatternAcrossLayers")
-plotResults.plotViolin(accuracy_middle, rho_values, nSize, "DiffPatternAcrossLayers")
-plotResults.plotViolin(accuracy_superficial, rho_values, nSize, "DiffPatternAcrossLayers")
+plotResults.plotViolin(accuracy_deep, rho_values, nSize, "Deep")
+plotResults.plotViolin(accuracy_middle, rho_values, nSize, "Middle")
+plotResults.plotViolin(accuracy_superficial, rho_values, nSize, "Superficial")
