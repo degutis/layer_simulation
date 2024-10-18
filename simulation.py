@@ -107,32 +107,33 @@ class VoxelResponses:
 
 
     def __generateLaminarPatternSingleLayer__(self, seed, rho, layer_of_interest):
-
+        
         boldPattern = np.empty((self.N, self.N, self.layers, self.numTrials_per_class))
         columnPattern = np.empty((self.N, self.N, self.layers, self.numTrials_per_class))
         drainedSignal_output = np.empty((self.N, self.N, self.layers, self.numTrials_per_class))
         mriPattern = np.empty((self.L, self.L, self.layers, self.numTrials_per_class))
 
+        layer_range = range(self.layers)
+
         for tr in range(self.numTrials_per_class):
-            for la in range(self.layers):
-                if la==layer_of_interest:
-                    input_seed = seed
-                else:
-                    input_seed = tr*self.layers + la + (seed+1)
-            
-                sim = cf.simulation(self.N, self.L, input_seed)
-                gwn = sim.gwnoise()
-                columnPattern[:,:, la, tr], _ = sim.columnPattern(rho,self.deltaRelative,gwn)
-                boldPattern[:, :, la, tr], _, _ = sim.bold(self.fwhm_layers[la], self.beta,columnPattern[:,:, la, tr])
+            input_seeds = [(tr*self.layers + la + (seed+1)) if la != layer_of_interest else seed for la in layer_range]
 
-            drainedSignal = vm.vascModel(boldPattern[:,:,:,tr].transpose((2,1,0)), layers=self.layers)
-            drainedSignal_output[:,:,:,tr] = drainedSignal.outputMatrix.transpose(1,2,0)
+            gwns = [cf.simulation(self.N, self.L, input_seeds[la]).gwnoise() for la in layer_range]
 
-            for l2 in range(self.layers):
-                mriPattern[:, :, l2, tr] = sim.mri(self.w, drainedSignal_output[:,:,l2,tr])
+            for la in layer_range:
+                sim = cf.simulation(self.N, self.L, input_seeds[la])
+                
+                columnPattern[:,:, la, tr], _ = sim.columnPattern(rho, self.deltaRelative, gwns[la])
+                boldPattern[:, :, la, tr], _, _ = sim.bold(self.fwhm_layers[la], self.beta, columnPattern[:,:, la, tr])
 
-            mriPattern_reshaped = mriPattern.reshape(mriPattern.shape[0]*mriPattern.shape[1],mriPattern.shape[2],mriPattern.shape[3])  
+            drainedSignal = vm.vascModel(boldPattern[:, :, :, tr].transpose((2, 1, 0)), layers=self.layers)
+            drainedSignal_output[:, :, :, tr] = drainedSignal.outputMatrix.transpose(1, 2, 0)
 
+            for l2 in layer_range:
+                mriPattern[:, :, l2, tr] = sim.mri(self.w, drainedSignal_output[:, :, l2, tr])
+
+        mriPattern_reshaped = mriPattern.reshape(mriPattern.shape[0] * mriPattern.shape[1], mriPattern.shape[2], mriPattern.shape[3])
+        
         return mriPattern_reshaped.transpose(2,0,1)       
 
 
@@ -151,7 +152,6 @@ class VoxelResponses:
         class2 = np.full((self.numTrials_per_class, 1), 1) # class 2
 
         y = np.concatenate((class1, class2), axis=0)
-        print(activity_matrix_combined_with_noise.shape)
         permutation_indices = np.random.permutation(activity_matrix_combined_with_noise.shape[0])
 
         activity_matrix_permuted = activity_matrix_combined_with_noise[permutation_indices, :, :]
@@ -227,7 +227,6 @@ class VoxelResponses:
             plt.show()
         
         plt.close(fig)
-
     """
 
     def runSVM_classifier_acrossLayers(self, layer_responses, y_permuted, n_splits=5):
