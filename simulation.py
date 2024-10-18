@@ -15,20 +15,21 @@ from sklearn.pipeline import Pipeline
 
 
 class VoxelResponses:
-    def __init__(self, seed, rho_c1, rho_c2, N=512, L = 24, deltaRelative=0.5, fwhm = 1.02, beta = 0.035, samplingVox=1, numTrials_per_class=60, fwhmRange = [0.83, 1.78], layers=3):
+    def __init__(self, seed, rho_c1, rho_c2, betaIncrease, N=512, L = 24, deltaRelative=0.5, beta = 0.035, samplingVox=1, numTrials_per_class=60, fwhmRange = [0.83, 1.78], layers=3):
         
         # 64:3 ratio between N and L.
 
         self.N = N   
         self.L = L     
         self.deltaRelative = deltaRelative
-        self.fwhm = fwhm
         self.beta = beta
+        self.betaIncrease = betaIncrease
         self.w = samplingVox
         self.fwhmRange = fwhmRange
         self.layers = layers
-        step = (self.fwhmRange[1] - self.fwhmRange[0]) / (self.layers - 1)
-        self.fwhm_layers = [self.fwhmRange[0] + step * i for i in range(self.layers)]
+        step_fwhm = (self.fwhmRange[1] - self.fwhmRange[0]) / (self.layers - 1)
+        self.fwhm_layers = [self.fwhmRange[0] + step_fwhm * i for i in range(self.layers)]
+        self.beta_layers = [np.round(self.beta+la*self.beta*self.betaIncrease,6) for la in range(self.layers)]
 
         self.rho_c1 = rho_c1
         self.rho_c2 = rho_c2
@@ -39,30 +40,30 @@ class VoxelResponses:
 
     def samePatternAcrossColumn(self):
 
-        activity_row_class1  = self.__generateLaminarColumnarPattern__(self.seed, self.rho_c1)
-        activity_row_class2  = self.__generateLaminarColumnarPattern__(self.seed+13086, self.rho_c2)
+        activity_row_class1, boldPattern_class1  = self.__generateLaminarColumnarPattern__(self.seed, self.rho_c1)
+        activity_row_class2, boldPattern_class2  = self.__generateLaminarColumnarPattern__(self.seed+13086, self.rho_c2)
 
         activity_matrix_permuted, y_permuted = self.__createTrialMatrix__(activity_row_class1, activity_row_class2)
 
-        return activity_matrix_permuted, y_permuted
+        return activity_matrix_permuted, y_permuted, boldPattern_class1, boldPattern_class2
 
     def diffPatternsAcrossColumn(self):
 
-        activity_row_class1  = self.__generateLaminarPatternsDifferent__(self.seed, self.rho_c1)
-        activity_row_class2  = self.__generateLaminarPatternsDifferent__(self.seed+13086, self.rho_c2)
+        activity_row_class1, boldPattern_class1  = self.__generateLaminarPatternsDifferent__(self.seed, self.rho_c1)
+        activity_row_class2, boldPattern_class2  = self.__generateLaminarPatternsDifferent__(self.seed+13086, self.rho_c2)
 
         activity_matrix_permuted, y_permuted = self.__createTrialMatrix__(activity_row_class1, activity_row_class2)
 
-        return activity_matrix_permuted, y_permuted
+        return activity_matrix_permuted, y_permuted, boldPattern_class1, boldPattern_class2
 
     def diffPatternsAcrossColumn_oneDecodable(self, layer_of_interest):
 
-        activity_row_class1  = self.__generateLaminarPatternSingleLayer__(self.seed, self.rho_c1, layer_of_interest)
-        activity_row_class2  = self.__generateLaminarPatternSingleLayer__(self.seed+13086, self.rho_c2, layer_of_interest)
+        activity_row_class1, boldPattern_class1  = self.__generateLaminarPatternSingleLayer__(self.seed, self.rho_c1, layer_of_interest)
+        activity_row_class2, boldPattern_class2  = self.__generateLaminarPatternSingleLayer__(self.seed+13086, self.rho_c2, layer_of_interest)
 
         activity_matrix_permuted, y_permuted = self.__createTrialMatrix__(activity_row_class1, activity_row_class2)
 
-        return activity_matrix_permuted, y_permuted
+        return activity_matrix_permuted, y_permuted, boldPattern_class1, boldPattern_class2
 
 
     def __generateLaminarPatternsDifferent__(self, seed, rho):
@@ -77,14 +78,14 @@ class VoxelResponses:
             columnPattern[:,:, la], _ = sim.columnPattern(rho,self.deltaRelative,gwn)
                
         for l in range(self.layers):
-            boldPattern[:, :, l], _, _ = sim.bold(self.fwhm_layers[l], self.beta,columnPattern[:,:,l])
+            boldPattern[:, :, l], _, _ = sim.bold(self.fwhm_layers[l], self.beta_layers[l],columnPattern[:,:,l])
 
         drainedSignal = vm.vascModel(boldPattern.transpose((2,1,0)), layers=self.layers)
 
         for l2 in range(self.layers):
             mriPattern[:, :, l2] = sim.mri(self.w, drainedSignal.outputMatrix.transpose(1,2,0)[:,:,l2])
 
-        return mriPattern.reshape(mriPattern.shape[0]*mriPattern.shape[1],mriPattern.shape[2])        
+        return mriPattern.reshape(mriPattern.shape[0]*mriPattern.shape[1],mriPattern.shape[2]), drainedSignal.outputMatrix.transpose(1,2,0)        
 
 
     def __generateLaminarColumnarPattern__(self, seed, rho):
@@ -96,14 +97,14 @@ class VoxelResponses:
         mriPattern = np.empty((self.L, self.L, self.layers))
                 
         for l in range(self.layers):
-            boldPattern[:, :, l], _, _ = sim.bold(self.fwhm_layers[l], self.beta,columnPattern)
+            boldPattern[:, :, l], _, _ = sim.bold(self.fwhm_layers[l], self.beta_layers[l],columnPattern)
 
         drainedSignal = vm.vascModel(boldPattern.transpose((2,1,0)), layers=self.layers)
 
         for l2 in range(self.layers):
             mriPattern[:, :, l2] = sim.mri(self.w, drainedSignal.outputMatrix.transpose(1,2,0)[:,:,l2])
 
-        return mriPattern.reshape(mriPattern.shape[0]*mriPattern.shape[1],mriPattern.shape[2])        
+        return mriPattern.reshape(mriPattern.shape[0]*mriPattern.shape[1],mriPattern.shape[2]), drainedSignal.outputMatrix.transpose(1,2,0)       
 
 
     def __generateLaminarPatternSingleLayer__(self, seed, rho, layer_of_interest):
@@ -124,7 +125,7 @@ class VoxelResponses:
                 sim = cf.simulation(self.N, self.L, input_seeds[la])
                 
                 columnPattern[:,:, la, tr], _ = sim.columnPattern(rho, self.deltaRelative, gwns[la])
-                boldPattern[:, :, la, tr], _, _ = sim.bold(self.fwhm_layers[la], self.beta, columnPattern[:,:, la, tr])
+                boldPattern[:, :, la, tr], _, _ = sim.bold(self.fwhm_layers[la], self.beta_layers[la], columnPattern[:,:, la, tr])
 
             drainedSignal = vm.vascModel(boldPattern[:, :, :, tr].transpose((2, 1, 0)), layers=self.layers)
             drainedSignal_output[:, :, :, tr] = drainedSignal.outputMatrix.transpose(1, 2, 0)
@@ -134,7 +135,7 @@ class VoxelResponses:
 
         mriPattern_reshaped = mriPattern.reshape(mriPattern.shape[0] * mriPattern.shape[1], mriPattern.shape[2], mriPattern.shape[3])
         
-        return mriPattern_reshaped.transpose(2,0,1)       
+        return mriPattern_reshaped.transpose(2,0,1), drainedSignal_output       
 
 
     def __createTrialMatrix__(self, activity_row_class1, activity_row_class2):

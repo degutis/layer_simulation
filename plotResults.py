@@ -3,38 +3,70 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def plotViolin(accuracy, rho_values, nSize, title):
+def plotViolin(accuracy, rho_values, CNR_change, title):
 
     numLayers = accuracy.shape[0]
-    numParams = accuracy.shape[2]
     numIterations = accuracy.shape[1]
+    numParams = accuracy.shape[2]
+    numBetas = accuracy.shape[3]
 
-    accuracy_flat = accuracy.transpose(0,2,1).reshape(numLayers * numParams * numIterations)
-    layers = np.repeat(np.arange(1, numLayers+1), numParams * numIterations) 
-    parameters = np.tile(np.repeat(rho_values, numIterations), numLayers)  
-    accuracy_values = np.tile(np.arange(1, numIterations+1), numLayers * numParams)
+    layer_names = ["Deep", "Middle", "Superficial"] 
 
+    # Flatten the tensor into a long format
+    accuracy_flat = accuracy.flatten()
+
+    # Create indices for Layer, Iteration, rho_values (Param1), and CNR_change (Param2)
+    layers = np.repeat(layer_names, numIterations * numParams * numBetas)
+    iterations = np.tile(np.repeat(np.arange(1, numIterations + 1), numParams * numBetas), numLayers)
+    rhos = np.tile(np.repeat(rho_values, numBetas), numLayers * numIterations)
+    betas = np.tile(CNR_change, numLayers * numIterations * numParams)
+
+    # Create the DataFrame
     df = pd.DataFrame({
         'Layer': layers,
-        'Rho': parameters,
+        'Iteration': iterations,
+        'Rho': rhos,       
+        'CNR_change': betas,
         'Accuracy': accuracy_flat
     })
 
-    palette = sns.color_palette("Set2", 3)  
-    fig, axes = plt.subplots(nrows=nSize[0], ncols=nSize[1], figsize=(20, 6), sharey=True)
-    for i, rho in enumerate(rho_values):
-        ax = axes[i]        
-        sns.violinplot(x='Layer', y='Accuracy', data=df[df['Rho'] == rho], 
-                    ax=ax, hue='Layer', palette=palette, inner = "points", split=False, legend=False)
-        ax.set_title(f'Rho = {rho}')
-        ax.set_xlabel('Layer')
-        if i == 0:
-            ax.set_ylabel('Accuracy')
-        else:
-            ax.set_ylabel('')
+    # Initialize the FacetGrid with rows for Rho and columns for CNR_change
+    g = sns.FacetGrid(df, row='Rho', col='CNR_change', margin_titles=True, height=4, aspect=1)
 
+    # Map the violinplot function to the grid, with hue for Layer
+    g.map(sns.violinplot, 'Layer', 'Accuracy', order=["Deep", "Middle", "Superficial"], palette="Set2", inner = "points")
+
+    # Adjust the layout
+    g.set_axis_labels("Layer", "Accuracy")
+    g.set_titles(row_template="Rho = {row_name}", col_template="CNR_change = {col_name}")
+
+    # Remove the legends for each subplot (optional)
+    g.add_legend()
+
+    # Show the plot
     plt.tight_layout()
-    fig.savefig(f"../derivatives/results/{title}.png",format="png")
+    g.savefig(f"../derivatives/results/{title}.png",format="png")
+
+
+def plotLaminarResp(X, y, FigTitle):
+
+    layers = X
+    sizeSquare = int(np.sqrt(outputMatrix.shape[1]))
+    patternA = np.mean(outputMatrix[:,:,np.ravel(y)==0],axis=2).reshape(layers,sizeSquare,sizeSquare)
+    patternB = np.mean(outputMatrix[:,:,np.ravel(y)==1],axis=2).reshape(layers,sizeSquare,sizeSquare)
+
+    fig, axs = plt.subplots(2, layers, figsize=(15, 10), sharex='col', sharey='row')
+    fig.text(0.07, 0.7, 'Pattern 1', va='center', rotation='vertical', fontsize=14)
+    fig.text(0.07, 0.3, 'Pattern 2', va='center', rotation='vertical', fontsize=14)
+        
+    cbar_ax = fig.add_axes([1.05, 0.15, 0.05, 0.7])
+    cbar = fig.colorbar(plt.cm.ScalarMappable(cmap='gray'), cax=cbar_ax)
+
+    for i in range(layers):
+        axs[0, i].imshow(patternA[i], cmap='gray')
+        axs[0, i].set_title(f'Layer {i+1}')
+
+        axs[1, i].imshow(patternB[i], cmap='gray')
+
+    fig.savefig(f'../derivatives/laminarPattern/LaminarResponse_{FigTitle}.png',format="png")
     plt.close(fig)
-
-
