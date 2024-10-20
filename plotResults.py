@@ -48,12 +48,13 @@ def plotViolin(accuracy, rho_values, CNR_change, title):
     g.savefig(f"../derivatives/results/{title}.png",format="png")
 
 
-def plotLaminarResp(X, y, FigTitle):
+def plotLaminarResp(X1, X2, FigTitle):
 
-    layers = X
-    sizeSquare = int(np.sqrt(outputMatrix.shape[1]))
-    patternA = np.mean(outputMatrix[:,:,np.ravel(y)==0],axis=2).reshape(layers,sizeSquare,sizeSquare)
-    patternB = np.mean(outputMatrix[:,:,np.ravel(y)==1],axis=2).reshape(layers,sizeSquare,sizeSquare)
+    if X1.ndim ==4:
+        X1 = np.mean(X1,3)
+        X2 = np.mean(X2,3)
+
+    layers = X1.shape[2]   
 
     fig, axs = plt.subplots(2, layers, figsize=(15, 10), sharex='col', sharey='row')
     fig.text(0.07, 0.7, 'Pattern 1', va='center', rotation='vertical', fontsize=14)
@@ -63,10 +64,10 @@ def plotLaminarResp(X, y, FigTitle):
     cbar = fig.colorbar(plt.cm.ScalarMappable(cmap='gray'), cax=cbar_ax)
 
     for i in range(layers):
-        axs[0, i].imshow(patternA[i], cmap='gray')
+        axs[0, i].imshow(X1[:,:,i], cmap='gray')
         axs[0, i].set_title(f'Layer {i+1}')
 
-        axs[1, i].imshow(patternB[i], cmap='gray')
+        axs[1, i].imshow(X2[:,:,i], cmap='gray')
 
     fig.savefig(f'../derivatives/laminarPattern/LaminarResponse_{FigTitle}.png',format="png")
     plt.close(fig)
