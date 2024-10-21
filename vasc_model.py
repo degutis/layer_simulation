@@ -57,26 +57,3 @@ class vascModel:
         float : The calculated value of p2t
         """
         return np.round((n / n_model) * p2t_model + (n_model - n) / (2 * n_model),2)
-
-    def plotLaminarResp(self, y, FigTitle):
-
-        sizeSquare = int(np.sqrt(self.outputMatrix.shape[1]))
-        patternA = np.mean(self.outputMatrix[:,:,np.ravel(y)==0],axis=2).reshape(self.layers,sizeSquare,sizeSquare)
-        patternB = np.mean(self.outputMatrix[:,:,np.ravel(y)==1],axis=2).reshape(self.layers,sizeSquare,sizeSquare)
-
-        fig, axs = plt.subplots(2, self.layers, figsize=(15, 10), sharex='col', sharey='row')
-        fig.text(0.07, 0.7, 'Pattern 1', va='center', rotation='vertical', fontsize=14)
-        fig.text(0.07, 0.3, 'Pattern 2', va='center', rotation='vertical', fontsize=14)
-        
-        cbar_ax = fig.add_axes([1.05, 0.15, 0.05, 0.7])
-        cbar = fig.colorbar(plt.cm.ScalarMappable(cmap='gray'), cax=cbar_ax)
-
-        for i in range(self.layers):
-            axs[0, i].imshow(patternA[i], cmap='gray')
-            axs[0, i].set_title(f'Layer {i+1}')
-
-            axs[1, i].imshow(patternB[i], cmap='gray')
-
-        fig.savefig(f'../derivatives/laminarPattern/LaminarResponse_{FigTitle}.png',format="png")
-        plt.close(fig)
-
