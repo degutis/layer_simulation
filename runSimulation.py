@@ -15,7 +15,7 @@ rval = len(rho_values)
 CNR_values = len(CNR_change)
 
 numTrials_per_class = 50
-beta = 0.035
+betaRange = [0.035, 0.035*2]
 
 accuracy_samePattern = np.empty((layers,iterations, rval, CNR_values))
 accuracy_deep = np.empty((layers,iterations, rval, CNR_values))
@@ -27,7 +27,7 @@ for it in range(iterations):
     for i,r in enumerate(rho_values):
         for ib,b in enumerate(CNR_change):
         
-            vox = sim.VoxelResponses(it,r,r, b, numTrials_per_class=numTrials_per_class, beta=beta)
+            vox = sim.VoxelResponses(it,r,r, numTrials_per_class=numTrials_per_class, betaRange=betaRange)
             
             X,y, _, _ = vox.samePatternAcrossColumn()
             accuracy_samePattern[:,it,i, ib] = vox.runSVM_classifier_acrossLayers(X,y)

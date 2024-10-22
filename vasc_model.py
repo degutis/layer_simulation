@@ -62,7 +62,7 @@ class vascModel:
         return np.round((n / n_model) * p2t_model + (n_model - n) / (2 * n_model),2)
     
 
-    def __calculate_3DPSF_matrix__(matrix, num):
+    def __calculate_3DPSF_matrix__(self,matrix, num):
         
         x = matrix.shape[0]
 
