@@ -10,7 +10,10 @@ def plotViolin(accuracy, rho_values, CNR_change, title):
     numParams = accuracy.shape[2]
     numBetas = accuracy.shape[3]
 
-    layer_names = ["Deep", "Middle", "Superficial"] 
+    if numLayers==3:
+        layer_names = ["Deep", "Middle", "Superficial"]
+    elif numLayers==4:
+        layer_names = ["Deep", "Middle Deep", "Middle Superficial", "Superficial"] 
 
     # Flatten the tensor into a long format
     accuracy_flat = accuracy.flatten()
@@ -34,13 +37,15 @@ def plotViolin(accuracy, rho_values, CNR_change, title):
     g = sns.FacetGrid(df, row='Rho', col='CNR_change', margin_titles=True, height=4, aspect=1)
 
     # Map the violinplot function to the grid, with hue for Layer
-    g.map(sns.violinplot, 'Layer', 'Accuracy', order=["Deep", "Middle", "Superficial"], palette="Set2", inner = "points")
+    g.map(sns.violinplot, 'Layer', 'Accuracy', order=layer_names, palette="Set2", inner = "points")
 
     # Adjust the layout
     g.set_axis_labels("Layer", "Accuracy")
     g.set_titles(row_template="Rho = {row_name}", col_template="CNR_change = {col_name}")
+    
+    for ax in g.axes.flat:
+        ax.set_ylim(0, 1)  
 
-    # Remove the legends for each subplot (optional)
     g.add_legend()
 
     # Show the plot
