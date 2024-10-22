@@ -121,11 +121,13 @@ class VoxelResponses:
 
         layer_range = range(self.N_depth)
         
-        Path(f'../derivatives/pipeline_files/N{self.N}_L{self.L}_Ndepth{self.N_depth}_Layers{self.layers}').mkdir(parents=True, exist_ok=True)
+        pathName = f'../derivatives/pipeline_files/N{self.N}_L{self.L}_Ndepth{self.N_depth}_Layers{self.layers}'
+
+        Path(pathName).mkdir(parents=True, exist_ok=True)
 
         for tr in range(self.numTrials_per_class):
             input_seeds = [(tr*self.N_depth + la + (seed+1)) if la not in layer_of_interest else seed for la in layer_range]
-            nameFile = f'../derivatives/pipeline_files/BoldPattern_Seed_{str(seed)}_Trial_{str(tr)}.pickle'
+            nameFile = f'{pathName}/BoldPattern_Seed_{str(seed)}_Trial_{str(tr)}.pickle'
             if not os.path.exists(nameFile):
                 for la in layer_range:
                     sim = cf.simulation(self.N, self.L, self.N_depth, self.layers, input_seeds[la])
