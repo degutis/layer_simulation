@@ -15,21 +15,25 @@ from sklearn.pipeline import Pipeline
 
 
 class VoxelResponses:
-    def __init__(self, seed, rho_c1, rho_c2, betaIncrease, N=512, L = 24, deltaRelative=0.5, beta = 0.035, samplingVox=1, numTrials_per_class=60, fwhmRange = [0.83, 1.78], layers=3):
+    def __init__(self, seed, rho_c1, rho_c2, N=320, L = 16, N_depth=12, layers=4, deltaRelative=0.5, betaRange = [0.035, 0.035*3], samplingVox=1, numTrials_per_class=50, fwhmRange = [0.83, 1.78]):
         
         # 64:3 ratio between N and L.
 
         self.N = N   
-        self.L = L     
-        self.deltaRelative = deltaRelative
-        self.beta = beta
-        self.betaIncrease = betaIncrease
-        self.w = samplingVox
-        self.fwhmRange = fwhmRange
+        self.L = L   
+        self.N_depth = N_depth
         self.layers = layers
-        step_fwhm = (self.fwhmRange[1] - self.fwhmRange[0]) / (self.layers - 1)
-        self.fwhm_layers = [self.fwhmRange[0] + step_fwhm * i for i in range(self.layers)]
-        self.beta_layers = [np.round(self.beta+la*self.beta*self.betaIncrease,6) for la in range(self.layers)]
+        
+        self.deltaRelative = deltaRelative
+        self.w = samplingVox
+        
+        self.fwhmRange = fwhmRange
+        step_fwhm = (self.fwhmRange[1] - self.fwhmRange[0]) / (self.N_depth - 1)
+        self.fwhm_layers = [self.fwhmRange[0] + step_fwhm * i for i in range(self.N_depth)]
+        
+        self.betaRange = betaRange
+        step_beta = (self.betaRange[1] - self.betaRange[0]) / (self.N_depth - 1)
+        self.beta_layers = [self.betaRange[0] + step_beta * i for i in range(self.N_depth)]
 
         self.rho_c1 = rho_c1
         self.rho_c2 = rho_c2
@@ -68,70 +72,65 @@ class VoxelResponses:
 
     def __generateLaminarPatternsDifferent__(self, seed, rho):
 
-        boldPattern = np.empty((self.N, self.N, self.layers))
+        columnPattern = np.empty((self.N, self.N, self.N_depth))
+        boldPattern = np.empty((self.N, self.N, self.N_depth))
         mriPattern = np.empty((self.L, self.L, self.layers))
-        columnPattern = np.empty((self.N, self.N, self.layers))
 
-        for la in range(self.layers):
-            sim = cf.simulation(self.N, self.L, seed)
+        for la in range(self.N_depth):
+            sim = cf.simulation(self.N, self.L, self.N_depth, self.layers, seed)
             gwn = sim.gwnoise()
             columnPattern[:,:, la], _ = sim.columnPattern(rho,self.deltaRelative,gwn)
                
-        for l in range(self.layers):
+        for l in range(self.N_depth):
             boldPattern[:, :, l], _, _ = sim.bold(self.fwhm_layers[l], self.beta_layers[l],columnPattern[:,:,l])
 
-        drainedSignal = vm.vascModel(boldPattern.transpose((2,1,0)), layers=self.layers)
+        drainedSignal = vm.vascModel(boldPattern.transpose((2,1,0)), layers=self.N_depth)
 
-        for l2 in range(self.layers):
-            mriPattern[:, :, l2] = sim.mri(self.w, drainedSignal.outputMatrix.transpose(1,2,0)[:,:,l2])
+        mriPattern = sim.mri(self.w, drainedSignal.outputMatrix.transpose(1,2,0))
 
         return mriPattern.reshape(mriPattern.shape[0]*mriPattern.shape[1],mriPattern.shape[2]), drainedSignal.outputMatrix.transpose(1,2,0)        
 
 
     def __generateLaminarColumnarPattern__(self, seed, rho):
 
-        sim = cf.simulation(self.N, self.L, seed)
+        sim = cf.simulation(self.N, self.L, self.N_depth, self.layers, seed)
         gwn = sim.gwnoise()
         columnPattern, _ = sim.columnPattern(rho,self.deltaRelative,gwn)
-        boldPattern = np.empty((self.N, self.N, self.layers))
+        boldPattern = np.empty((self.N, self.N, self.N_depth))
         mriPattern = np.empty((self.L, self.L, self.layers))
                 
-        for l in range(self.layers):
+        for l in range(self.N_depth):
             boldPattern[:, :, l], _, _ = sim.bold(self.fwhm_layers[l], self.beta_layers[l],columnPattern)
 
-        drainedSignal = vm.vascModel(boldPattern.transpose((2,1,0)), layers=self.layers)
+        drainedSignal = vm.vascModel(boldPattern.transpose((2,1,0)), layers=self.N_depth)
 
-        for l2 in range(self.layers):
-            mriPattern[:, :, l2] = sim.mri(self.w, drainedSignal.outputMatrix.transpose(1,2,0)[:,:,l2])
+        mriPattern = sim.mri(self.w, drainedSignal.outputMatrix.transpose(1,2,0))
 
         return mriPattern.reshape(mriPattern.shape[0]*mriPattern.shape[1],mriPattern.shape[2]), drainedSignal.outputMatrix.transpose(1,2,0)       
 
 
     def __generateLaminarPatternSingleLayer__(self, seed, rho, layer_of_interest):
         
-        boldPattern = np.empty((self.N, self.N, self.layers, self.numTrials_per_class))
-        columnPattern = np.empty((self.N, self.N, self.layers, self.numTrials_per_class))
-        drainedSignal_output = np.empty((self.N, self.N, self.layers, self.numTrials_per_class))
+        boldPattern = np.empty((self.N, self.N, self.N_depth, self.numTrials_per_class))
+        columnPattern = np.empty((self.N, self.N, self.N_depth, self.numTrials_per_class))
+        drainedSignal_output = np.empty((self.N, self.N, self.N_depth, self.numTrials_per_class))
         mriPattern = np.empty((self.L, self.L, self.layers, self.numTrials_per_class))
 
-        layer_range = range(self.layers)
+        layer_range = range(self.N_depth)
 
         for tr in range(self.numTrials_per_class):
-            input_seeds = [(tr*self.layers + la + (seed+1)) if la != layer_of_interest else seed for la in layer_range]
-
-            gwns = [cf.simulation(self.N, self.L, input_seeds[la]).gwnoise() for la in layer_range]
+            input_seeds = [(tr*self.N_depth + la + (seed+1)) if la not in layer_of_interest else seed for la in layer_range]
 
             for la in layer_range:
-                sim = cf.simulation(self.N, self.L, input_seeds[la])
-                
-                columnPattern[:,:, la, tr], _ = sim.columnPattern(rho, self.deltaRelative, gwns[la])
+                sim = cf.simulation(self.N, self.L, self.N_depth, self.layers, input_seeds[la])
+                gwn = sim.gwnoise()          
+                columnPattern[:,:, la, tr], _ = sim.columnPattern(rho, self.deltaRelative, gwn)
                 boldPattern[:, :, la, tr], _, _ = sim.bold(self.fwhm_layers[la], self.beta_layers[la], columnPattern[:,:, la, tr])
 
-            drainedSignal = vm.vascModel(boldPattern[:, :, :, tr].transpose((2, 1, 0)), layers=self.layers)
+            drainedSignal = vm.vascModel(boldPattern[:, :, :, tr].transpose((2, 1, 0)), layers=self.N_depth)
             drainedSignal_output[:, :, :, tr] = drainedSignal.outputMatrix.transpose(1, 2, 0)
 
-            for l2 in layer_range:
-                mriPattern[:, :, l2, tr] = sim.mri(self.w, drainedSignal_output[:, :, l2, tr])
+            mriPattern[:, :, :, tr] = sim.mri(self.w, drainedSignal_output[:, :, :, tr])
 
         mriPattern_reshaped = mriPattern.reshape(mriPattern.shape[0] * mriPattern.shape[1], mriPattern.shape[2], mriPattern.shape[3])
         

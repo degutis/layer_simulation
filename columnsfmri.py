@@ -10,7 +10,7 @@ class simulation:
     Implementation of a simulation of cortical column patterns and their MR imaging.
     Taken and adjusted from Chaimow et al. (2018) https://github.com/dchaimow/columnsfmri
     """
-    def __init__(self,N,L,seed):
+    def __init__(self,N,L,N_depth, L_depth, seed):
         """
         Initializes simulation.
         N   simulation grid points along one dimension
@@ -18,6 +18,8 @@ class simulation:
         """
         self.N = N
         self.L = L
+        self.N_depth = N_depth
+        self.L_depth = L_depth
         self.seed = seed # added a seed in the simulation part
         self.dx = L/self.N
         self.dk = 1/self.L
@@ -57,6 +59,15 @@ class simulation:
         return (self.N**2 * self.dk**2)*np.fft.ifftshift(
             np.fft.ifft2(np.fft.fftshift(fy)))
     
+    def ft3(self, y):
+        """
+        Numerically simulates 3D Fourier transform of patterns defined on the 
+        simulation grid for the x, y dimensions (L) and z dimension (L_depth).
+        """
+        return (self.L**2 * self.L_depth / (self.N**2 * self.N_depth)) * np.fft.fftshift(
+            np.fft.fftn(np.fft.ifftshift(y), s=(self.N, self.N, self.N_depth))
+        )
+   
     def columnPattern(self,rho,deltaRelative,gwnoise):
         """
         Simulates the differential neuronal response of a pattern of cortical 
@@ -104,20 +115,33 @@ class simulation:
             by = np.real(self.ift2(MTF*self.ft2(y)))
         return by,psf,MTF
     
-    def mri(self,w,y):
+    def mri(self, w, y):
         """
-        Simulates MRI voxel sampling from pattern y by reducing the k-space
-        represenation according to voxel width w, which need to be a devisor 
-        of self.L.
+        Simulates MRI voxel sampling from a 3D pattern y by reducing the k-space
+        representation according to voxel width w, which needs to be a divisor 
+        of L for x and y dimensions, and L_depth for the z dimension.
         """
-        nSamplesHalf = self.L/(2*w)
-        if nSamplesHalf % 1 == 0:
-            nSamplesHalf = int(nSamplesHalf)
-            yk = self.ft2(y)
-            centerIdx = int(self.N/2)
-            downSampledY = yk[centerIdx-nSamplesHalf:centerIdx+nSamplesHalf,
-                              centerIdx-nSamplesHalf:centerIdx+nSamplesHalf]
-            my = np.real(np.fft.fftshift(np.fft.ifft2(np.fft.ifftshift(downSampledY))))/w**2
+        nSamplesHalfXY = self.L / (2 * w)      # Down-sample in x and y dimensions
+        nSamplesHalfZ = self.L_depth / (2 * w) # Down-sample in z dimension based on L_depth
+
+        if nSamplesHalfXY % 1 == 0 and nSamplesHalfZ % 1 == 0:
+            nSamplesHalfXY = int(nSamplesHalfXY)
+            nSamplesHalfZ = int(nSamplesHalfZ)
+
+            yk = self.ft3(y)  # Use the 3D Fourier transform with L_depth and N_depth
+
+            centerIdxXY = int(self.N / 2)       # Center index for x and y dimensions
+            centerIdxZ = int(self.N_depth / 2)  # Center index for z dimension (using N_depth)
+
+            # Downsample in all three dimensions
+            downSampledY = yk[
+                centerIdxXY - nSamplesHalfXY : centerIdxXY + nSamplesHalfXY,
+                centerIdxXY - nSamplesHalfXY : centerIdxXY + nSamplesHalfXY,
+                centerIdxZ - nSamplesHalfZ : centerIdxZ + nSamplesHalfZ
+            ]
+
+            # Perform inverse FFT and normalize
+            my = np.real(np.fft.fftshift(np.fft.ifftn(np.fft.ifftshift(downSampledY)))) / (w**3)
         else:
             my = None
         return my
