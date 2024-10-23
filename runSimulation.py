@@ -6,7 +6,7 @@ import numpy as np
 cf.createFolders()
 
 # Define some parameters
-iterations=30
+iterations=15
 layers = 4
 rho_values = [0.5, 0.6]
 CNR_change = [2, 3]

@@ -18,7 +18,7 @@ from sklearn.pipeline import Pipeline
 
 
 class VoxelResponses:
-    def __init__(self, seed, rho_c1, rho_c2, N=320, L = 16, N_depth=12, layers=4, deltaRelative=0.5, betaRange = [0.035, 0.035*3], samplingVox=1, numTrials_per_class=50, fwhmRange = [0.83, 1.78]):
+    def __init__(self, seed, rho_c1, rho_c2, N=320, L = 16, N_depth=12, layers=4, deltaRelative=0.5, betaRange = [0.035, 0.035*2], samplingVox=1, numTrials_per_class=50, fwhmRange = [0.83, 1.78]):
         
         # 64:3 ratio between N and L.
 
@@ -121,7 +121,7 @@ class VoxelResponses:
 
         layer_range = range(self.N_depth)
         
-        pathName = f'../derivatives/pipeline_files/N{self.N}_L{self.L}_Ndepth{self.N_depth}_Layers{self.layers}'
+        pathName = f'../derivatives/pipeline_files/N{self.N}_L{self.L}_Ndepth{self.N_depth}_Layers{self.layers}_BetaRange{str(self.betaRange)}_RhoValues_{rho}'
 
         Path(pathName).mkdir(parents=True, exist_ok=True)
 
