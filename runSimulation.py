@@ -34,6 +34,9 @@ for it in range(iterations):
             X,y, _, _ = vox.samePatternAcrossColumn()
             accuracy_samePattern[:,it,i, ib] = vox.runSVM_classifier_acrossLayers(X,y)
 
+            X_3,y_3,_, _ = vox.diffPatternsAcrossColumn_oneDecodable([9,10,11])
+            accuracy_superficial[:,it,i, ib] = vox.runSVM_classifier_acrossLayers(X_3, y_3)
+
             X_0,y_0,_, _ = vox.diffPatternsAcrossColumn_oneDecodable([0,1,2])
             accuracy_deep[:,it,i, ib] = vox.runSVM_classifier_acrossLayers(X_0, y_0)
             
@@ -43,8 +46,6 @@ for it in range(iterations):
             X_2,y_2,_, _ = vox.diffPatternsAcrossColumn_oneDecodable([6,7,8])
             accuracy_middle_superficial[:,it,i, ib] = vox.runSVM_classifier_acrossLayers(X_2, y_2)
 
-            X_3,y_3,_, _ = vox.diffPatternsAcrossColumn_oneDecodable([9,10,11])
-            accuracy_superficial[:,it,i, ib] = vox.runSVM_classifier_acrossLayers(X_3, y_3)
 
 
 plotResults.plotViolin(accuracy_samePattern, rho_values, CNR_change, "GRID_SamePatternAcrossLayers")
