@@ -207,11 +207,10 @@ def missegmentationVox(X, percent, seed):
     np.random.seed(seed)
     layers = X.shape[2]
     num_indices = int(X.shape[1] * (percent / 100))
-    selected_indices = np.random.choice(X.shape[1], size=num_indices, replace=False)
-
-    X_new = np.empty(X.shape)
+    X_new = X.copy()
 
     for l1 in range(layers-1):
+        selected_indices = np.random.choice(X.shape[1], size=num_indices, replace=False)
         X_new[:,selected_indices,l1], X_new[:,selected_indices,l1+1] = X[:,selected_indices,l1+1], X[:,selected_indices,l1]
 
     return X_new

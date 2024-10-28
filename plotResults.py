@@ -39,12 +39,11 @@ def plotViolin(accuracy, rho_values, CNR_change, title):
     # Map the violinplot function to the grid, with hue for Layer
     g.map(sns.violinplot, 'Layer', 'Accuracy', order=layer_names, palette="Set2", inner = "points")
 
-    # Adjust the layout
+    g.map(plt.axhline, y=0, linestyle='--', color='gray')
+
     g.set_axis_labels("Layer", "Accuracy")
     g.set_titles(row_template="Rho = {row_name}", col_template="CNR_change = {col_name}")
-    
-    for ax in g.axes.flat:
-        ax.set_ylim(0, 1)  
+    g.set(ylim=(0, 1))
 
     g.add_legend()
 
@@ -78,7 +77,49 @@ def plotLaminarResp(X1, X2, FigTitle):
     plt.close(fig)
 
 
-def plotChangeMisalignment(X_new, X_old):
+def plotChangeMisalignment(accuracy, rho_values, CNR_change, percent_change, title):
 
-    xChange = X_new - X_old
+    numLayers = accuracy.shape[0]
+    numIterations = accuracy.shape[1]
+    numParams = accuracy.shape[2]
+    numBetas = accuracy.shape[3]
+    numPercent = accuracy.shape[4]
+
+    if numLayers==3:
+        layer_names = ["Deep", "Middle", "Superficial"]
+    elif numLayers==4:
+        layer_names = ["Deep", "Middle Deep", "Middle Superficial", "Superficial"] 
+
+    accuracy_flat = accuracy.flatten()
+
+    layers = np.repeat(layer_names, numIterations * numParams * numBetas * numPercent)
+    iterations = np.tile(np.repeat(np.arange(1, numIterations + 1), numParams * numBetas * numPercent), numLayers)
+    rhos = np.tile(np.repeat(rho_values, numBetas * numPercent), numLayers * numIterations)
+    betas = np.tile(np.repeat(CNR_change, numPercent), numLayers * numIterations * numParams)
+    percentages = np.tile(percent_change, numLayers * numIterations * numParams * numBetas)
+
+    # Create the DataFrame
+    df = pd.DataFrame({
+        'Layer': layers,
+        'Iteration': iterations,
+        'Rho': rhos,
+        'CNR_change': betas,
+        'Percent_change': percentages,
+        'Accuracy': accuracy_flat
+    })
+
+    g = sns.FacetGrid(df, row='Rho', col='CNR_change', margin_titles=True, height=4, aspect=1)
+    g.map_dataframe(sns.lineplot, x='Percent_change', y='Accuracy', hue='Layer', 
+                    hue_order=layer_names, palette="Set2", errorbar="se", markers=True)
+
+    g.set_axis_labels("Misalignment Percent", "Accuracy Difference")
+    g.set_titles(row_template="Rho = {row_name}", col_template="CNR_change = {col_name}")
     
+    g.map(plt.axhline, y=0, linestyle='--', color='gray')
+
+    g.set(ylim=(-0.25, 0.25))
+
+    g.add_legend(title="Layer", bbox_to_anchor=(1, 0.5), loc='center left')
+
+    plt.tight_layout()
+    g.savefig(f"../derivatives/results/{title}.png", format="png")

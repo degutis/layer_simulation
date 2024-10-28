@@ -52,5 +52,5 @@ for it in range(iterations):
 
             accuracy[:,it,i, ib] = vox.runSVM_classifier_acrossLayers(X, y)
 
-np.save(f'../derivatives/results/Accuracy_LayerResponse{str(layer_index)}_rho{str(rho_values)}_CNR{str(CNR_values)}.npy', accuracy)
+np.save(f'../derivatives/results/Accuracy_LayerResponse{str(layer_index)}_rho{str(rho_values)}_CNR{str(CNR_change)}.npy', accuracy)
 plotResults.plotViolin(accuracy, rho_values, CNR_change, f'GRID_{name_dict[layer_index]}')
