@@ -1,17 +1,10 @@
 import numpy as np 
-import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-import pickle as pkl
-import os
-from pathlib import Path
 
 import columnsfmri as cf
 import vasc_model as vm
 
-from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
+from sklearn.model_selection import cross_val_score, StratifiedKFold
 from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
@@ -173,64 +166,6 @@ class VoxelResponses:
         return mriPattern + (1/self.SNR) * rg.randn(*mriPattern.shape)
    
 
-    #def calculateTSNR(self):
-
-        #mean_signal = np.mean(self.activity_matrix_permuted, axis=-1)
-        #std_noise = np.std(self.activity_matrix_permuted, axis=-1)
-        #tsnr = np.divide(mean_signal, std_noise, where=std_noise!=0)
-        #print(f"Mean tSNR across the brain: {np.mean(tsnr)}")
-
-    """
-    def plotPattern(self,FigTitle, save=True, show=False):
-        
-        fig = plt.figure(figsize=(15, 15))
-
-        ax1 = plt.subplot(6,6,(1,2))
-        ax2 = plt.subplot(6,6,(3))
-        ax3 = plt.subplot(6,6,(13,14))
-        ax4 = plt.subplot(6,6,(15))
-        ax5 = plt.subplot(6,6,(10,11))
-
-        color1 = 'green'
-        color2 = 'blue'
-
-        ax1.imshow(self.columnPattern1, aspect='equal', cmap='gray', interpolation='none')
-        ax1.set_title('Columnar pattern #1')
-        ax1.set_ylabel('Grid points')
-        ax1.set_xlabel('Grid points')
-
-        ax3.imshow(self.columnPattern2, aspect='equal', cmap='gray', interpolation='none')
-        ax3.set_title('Columnar pattern #2')
-        ax3.set_ylabel('Grid points')
-        ax3.set_xlabel('Grid points')
-
-        ax2.plot(self.activity_row_class1, color = color1)
-        ax2.set_title('Voxel activation #1')
-        ax2.set_ylabel('Signal')
-        ax2.set_xlabel('Voxels')
-
-        ax4.plot(self.activity_row_class2, color = color2)
-        ax4.set_title('Voxel activation #2')
-        ax4.set_ylabel('Signal')
-        ax4.set_xlabel('Voxels')
-
-        ax5.imshow(self.activity_matrix_permuted, aspect='auto', cmap='gray', interpolation='none')
-        for i in range(self.activity_matrix_permuted.shape[0]):
-            rect_color = color1 if self.y_permuted[i] == 0 else color2
-            rect = patches.Rectangle((0, i-0.5), self.activity_matrix_permuted.shape[1], 1, linewidth=0.5, edgecolor=rect_color, facecolor='none')
-            ax5.add_patch(rect)       
-        ax5.set_title(f"Synthetic fMRI data for all trials)")
-        ax5.set_ylabel('Trials')
-        ax5.set_xlabel('Voxels')
-        
-        if save==True:
-            fig.savefig(f'../derivatives/pattern_simulation/WorkflowPattern_{FigTitle}.png',format="png")
-        if show==True:
-            plt.show()
-        
-        plt.close(fig)
-    """
-
     def runSVM_classifier_acrossLayers(self, layer_responses, y_permuted, n_splits=5):
         """
         Runs an SVM classifier for each layer using cross-validation and a standard scaler
@@ -265,27 +200,18 @@ class VoxelResponses:
             scores[layer] = np.mean(cross_val_score(pipeline, X, y, cv=cv))
 
         return scores
-
-
-    def calculateDrainingEffect_patternOnlyInSingleLayer(self, signalLayer, seed, layers=10):
-        """
-        Repeats the same underlying columnar pattern across all layers and computes
-        the draining vein effect using vasc_model
-
-        Parameters:
-        layers : int : number of layers to estimate the draining vein effect on
     
-        Returns:
-        class : parameters and main output matrix from vasc_model
-        """
 
-        rg = np.random.RandomState(seed)
-        noise = (1/self.SNR) * rg.randn(self.activity_matrix_permuted.shape[0],self.activity_matrix_permuted.shape[1],layers-1)
-        activity_matrix_permuted_extra_dim = self.activity_matrix_permuted[:,:,np.newaxis]
-        combinedLayersMatrix = np.concatenate((activity_matrix_permuted_extra_dim, noise), axis=2)
-        combinedLayersMatrix[:,:,[0, signalLayer]] = combinedLayersMatrix[:,:,[signalLayer, 0]]
-        combinedLayersMatrix = combinedLayersMatrix.transpose((2,1,0))
+def missegmentationVox(X, percent, seed):
 
-        return vm.vascModel(combinedLayersMatrix, layers=layers)
+    np.random.seed(seed)
+    layers = X.shape[2]
+    num_indices = int(X.shape[1] * (percent / 100))
+    selected_indices = np.random.choice(X.shape[1], size=num_indices, replace=False)
 
+    X_new = np.empty(X.shape)
 
+    for l1 in range(layers-1):
+        X_new[:,selected_indices,l1], X_new[:,selected_indices,l1+1] = X[:,selected_indices,l1+1], X[:,selected_indices,l1]
+
+    return X_new

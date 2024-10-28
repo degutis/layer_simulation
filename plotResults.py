@@ -76,3 +76,9 @@ def plotLaminarResp(X1, X2, FigTitle):
 
     fig.savefig(f'../derivatives/laminarPattern/LaminarResponse_{FigTitle}.png',format="png")
     plt.close(fig)
+
+
+def plotChangeMisalignment(X_new, X_old):
+
+    xChange = X_new - X_old
+    

@@ -3,6 +3,8 @@ import plotResults
 import createFolders as cf
 import numpy as np
 import sys
+from pathlib import Path
+import pickle as pkl
 
 cf.createFolders()
 
@@ -34,12 +36,20 @@ name_dict = {
     3: "Superficial"
 }
 
+pathName = f'../derivatives/pipeline_files/Layers{layers}_Beta{beta}_Trials{numTrials_per_class}_LayerOfInt{name_dict[layer_index]}'
+Path(pathName).mkdir(parents=True, exist_ok=True)
+
 for it in range(iterations):
     for i,r in enumerate(rho_values):
         for ib,b in enumerate(CNR_change):
             betaRange = [beta, beta*CNR_change[ib]]
             vox = sim.VoxelResponses(it,r,r, numTrials_per_class=numTrials_per_class, betaRange=betaRange, layers=layers)                       
             X,y,_, _ = vox.diffPatternsAcrossColumn_oneDecodable(layer_dict[layer_index])
+
+            nameFile = f'{pathName}/Iteration{it}_Rho{r}_CNR{b}.pickle'
+            with open(nameFile, 'wb') as handle:
+                pkl.dump((X, y), handle)
+
             accuracy[:,it,i, ib] = vox.runSVM_classifier_acrossLayers(X, y)
 
 np.save(f'../derivatives/results/Accuracy_LayerResponse{str(layer_index)}_rho{str(rho_values)}_CNR{str(CNR_values)}.npy', accuracy)
