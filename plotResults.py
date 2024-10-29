@@ -77,92 +77,53 @@ def plotLaminarResp(X1, X2, FigTitle):
     plt.close(fig)
 
 
-def plotChangeMisalignment(accuracy, rho_values, CNR_change, percent_change, title):
-
-    numLayers = accuracy.shape[0]
-    numIterations = accuracy.shape[1]
-    numParams = accuracy.shape[2]
-    numBetas = accuracy.shape[3]
-    numPercent = accuracy.shape[4]
-
-    if numLayers==3:
-        layer_names = ["Deep", "Middle", "Superficial"]
-    elif numLayers==4:
-        layer_names = ["Deep", "Middle Deep", "Middle Superficial", "Superficial"] 
-
-    accuracy_flat = accuracy.flatten()
-
-    layers = np.repeat(layer_names, numIterations * numParams * numBetas * numPercent)
-    iterations = np.tile(np.repeat(np.arange(1, numIterations + 1), numParams * numBetas * numPercent), numLayers)
-    rhos = np.tile(np.repeat(rho_values, numBetas * numPercent), numLayers * numIterations)
-    betas = np.tile(np.repeat(CNR_change, numPercent), numLayers * numIterations * numParams)
-    percentages = np.tile(percent_change, numLayers * numIterations * numParams * numBetas)
-
-    # Create the DataFrame
-    df = pd.DataFrame({
-        'Layer': layers,
-        'Iteration': iterations,
-        'Rho': rhos,
-        'CNR_change': betas,
-        'Percent_change': percentages,
-        'Accuracy': accuracy_flat
-    })
-
-    g = sns.FacetGrid(df, row='Rho', col='CNR_change', margin_titles=True, height=4, aspect=1)
-    g.map_dataframe(sns.lineplot, x='Percent_change', y='Accuracy', hue='Layer', 
-                    hue_order=layer_names, palette="Set2", errorbar="se", markers=True)
-
-    g.set_axis_labels("Misalignment Percent", "Accuracy Difference")
-    g.set_titles(row_template="Rho = {row_name}", col_template="CNR_change = {col_name}")
+def setup_df(accuracy, layer_names, rho_values, CNR_change, percent_change, iterations=None):
     
-    g.map(plt.axhline, y=0, linestyle='--', color='gray')
-
-    g.set(ylim=(-0.25, 0.25))
-
-    g.add_legend(title="Layer", bbox_to_anchor=(1, 0.5), loc='center left')
-
-    plt.tight_layout()
-    g.savefig(f"../derivatives/results/{title}.png", format="png")
-
-
-def plotTstat(accuracy, rho_values, CNR_change, percent_change, layer_of_interest, title):
-
-    numLayers = accuracy.shape[0]
-    numParams = accuracy.shape[1]
-    numBetas = accuracy.shape[2]
-    numPercent = accuracy.shape[3]
-
-    if numLayers==3:
-        layer_names = [f'Deep - {layer_of_interest}', f'Middle - {layer_of_interest}', f'Superficial - {layer_of_interest}'] 
-    elif numLayers==4:
-        layer_names = [f'Deep - {layer_of_interest}', f'Middle Deep - {layer_of_interest}', f'Middle Superficial - {layer_of_interest}', f'Superficial - {layer_of_interest}'] 
-
     accuracy_flat = accuracy.flatten()
+    numLayers = accuracy.shape[0]
+    numParams = accuracy.shape[-3]
+    numBetas = accuracy.shape[-2]
+    numPercent = accuracy.shape[-1]
+    
+    layers = np.repeat(layer_names, numParams * numBetas * numPercent * (iterations or 1))
+    rhos = np.tile(np.repeat(rho_values, numBetas * numPercent), numLayers * (iterations or 1))
+    betas = np.tile(np.repeat(CNR_change, numPercent), numLayers * numParams * (iterations or 1))
+    percentages = np.tile(percent_change, numLayers * numParams * numBetas * (iterations or 1))
 
-    layers = np.repeat(layer_names, numParams * numBetas * numPercent)
-    rhos = np.tile(np.repeat(rho_values, numBetas * numPercent), numLayers)
-    betas = np.tile(np.repeat(CNR_change, numPercent), numLayers * numParams)
-    percentages = np.tile(percent_change, numLayers * numParams * numBetas)
-
-    # Create the DataFrame
-    df = pd.DataFrame({
+    df_data = {
         'Layer': layers,
         'Rho': rhos,
         'CNR_change': betas,
         'Percent_change': percentages,
         'Accuracy': accuracy_flat
-    })
+    }
+    
+    if iterations:
+        df_data['Iteration'] = np.tile(np.repeat(np.arange(1, iterations + 1), numParams * numBetas * numPercent), numLayers)
 
+    return pd.DataFrame(df_data)
+
+def plotGraph(df, title, y_label, hue_order, layer_of_interest=None):
+    
     g = sns.FacetGrid(df, row='Rho', col='CNR_change', margin_titles=True, height=4, aspect=1)
     g.map_dataframe(sns.lineplot, x='Percent_change', y='Accuracy', hue='Layer', 
-                    hue_order=layer_names, palette="Set2", markers=True)
-
-    g.set_axis_labels("Misalignment Percent", "T-value (One-sample t-test)")
+                    hue_order=hue_order, palette="Set2", markers=True)
+    g.set_axis_labels("Misalignment Percent", y_label)
     g.set_titles(row_template="Rho = {row_name}", col_template="CNR_change = {col_name}")
-    
     g.map(plt.axhline, y=0, linestyle='--', color='gray')
-
     g.add_legend(title="Layer", bbox_to_anchor=(1, 0.5), loc='center left')
     g.fig.suptitle(f'Separable patterns present in the {layer_of_interest} Layer')
     plt.tight_layout()
     g.savefig(f"../derivatives/results/{title}.png", format="png")
+
+def plotChangeMisalignment(accuracy, rho_values, CNR_change, percent_change, title):
+    
+    layer_names = ["Deep", "Middle", "Superficial"] if accuracy.shape[0] == 3 else ["Deep", "Middle Deep", "Middle Superficial", "Superficial"]
+    df = setup_df(accuracy, layer_names, rho_values, CNR_change, percent_change, iterations=accuracy.shape[1])
+    plotGraph(df, title, "Accuracy Difference", layer_names)
+
+def plotTstat(accuracy, rho_values, CNR_change, percent_change, layer_of_interest, title):
+    
+    layer_names = [f'{name} - {layer_of_interest}' for name in ["Deep", "Middle", "Superficial"][:accuracy.shape[0]]]
+    df = setup_df(accuracy, layer_names, rho_values, CNR_change, percent_change)
+    plotGraph(df, title, "T-value (One-sample t-test)", layer_names, layer_of_interest)
