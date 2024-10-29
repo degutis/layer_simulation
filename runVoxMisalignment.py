@@ -3,6 +3,8 @@ import numpy as np
 import pickle as pkl
 import os
 import plotResults
+from scipy import stats
+
 
 
 percent_change=[1,5,10,15,20,30,40,50]
@@ -27,6 +29,14 @@ name_dict = {
     2: "LayerOfIntMiddle_Sup",
     3: "LayerOfIntSuperficial"
 }
+
+name_dict2 = {
+    0: "Deep",
+    1: "Middle_Deep",
+    2: "Middle_Sup",
+    3: "Superficial"
+}
+
 
 sorted_folders = sorted(folders_layers, key=lambda x: next(i for i, suffix in name_dict.items() if x.endswith(suffix)))
 X = np.empty((trials*2, voxels, layers,iterations, rval, CNR_values, len(sorted_folders)))
@@ -57,8 +67,11 @@ for index, folder in enumerate(sorted_folders):
     accuracy_diff = accuracy_new - np.repeat(accuracy_old[..., np.newaxis], len(percent_change), axis=4)
     np.save(f'../derivatives/results/Difference_Accuracy_LayerResponse{index}_rho{(rho_values)}_CNR{str(CNR_change)}_MisPerc{percent_change}.npy', accuracy_diff)
 
-    plotResults.plotChangeMisalignment(accuracy_diff, rho_values, CNR_change, percent_change, f'MisalignmentChange{name_dict[index]}')
+    plotResults.plotChangeMisalignment(accuracy_diff, rho_values, CNR_change, percent_change, f'MisalignmentChange{name_dict2[index]}')
     
+    accuracy_layerSubtraction = accuracy_new - accuracy_new[index, :,:,:]
+    t_stat, _ = stats.ttest_1samp(accuracy_layerSubtraction, 0, axis=1)
+    plotResults.plotTstat(t_stat, rho_values, CNR_change, percent_change, name_dict2[index], f'MisalignmentLayersChange{name_dict2[index]}')
 
 
 

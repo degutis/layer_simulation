@@ -123,3 +123,46 @@ def plotChangeMisalignment(accuracy, rho_values, CNR_change, percent_change, tit
 
     plt.tight_layout()
     g.savefig(f"../derivatives/results/{title}.png", format="png")
+
+
+def plotTstat(accuracy, rho_values, CNR_change, percent_change, layer_of_interest, title):
+
+    numLayers = accuracy.shape[0]
+    numParams = accuracy.shape[1]
+    numBetas = accuracy.shape[2]
+    numPercent = accuracy.shape[3]
+
+    if numLayers==3:
+        layer_names = [f'Deep - {layer_of_interest}', f'Middle - {layer_of_interest}', f'Superficial - {layer_of_interest}'] 
+    elif numLayers==4:
+        layer_names = [f'Deep - {layer_of_interest}', f'Middle Deep - {layer_of_interest}', f'Middle Superficial - {layer_of_interest}', f'Superficial - {layer_of_interest}'] 
+
+    accuracy_flat = accuracy.flatten()
+
+    layers = np.repeat(layer_names, numParams * numBetas * numPercent)
+    rhos = np.tile(np.repeat(rho_values, numBetas * numPercent), numLayers)
+    betas = np.tile(np.repeat(CNR_change, numPercent), numLayers * numParams)
+    percentages = np.tile(percent_change, numLayers * numParams * numBetas)
+
+    # Create the DataFrame
+    df = pd.DataFrame({
+        'Layer': layers,
+        'Rho': rhos,
+        'CNR_change': betas,
+        'Percent_change': percentages,
+        'Accuracy': accuracy_flat
+    })
+
+    g = sns.FacetGrid(df, row='Rho', col='CNR_change', margin_titles=True, height=4, aspect=1)
+    g.map_dataframe(sns.lineplot, x='Percent_change', y='Accuracy', hue='Layer', 
+                    hue_order=layer_names, palette="Set2", markers=True)
+
+    g.set_axis_labels("Misalignment Percent", "T-value (One-sample t-test)")
+    g.set_titles(row_template="Rho = {row_name}", col_template="CNR_change = {col_name}")
+    
+    g.map(plt.axhline, y=0, linestyle='--', color='gray')
+
+    g.add_legend(title="Layer", bbox_to_anchor=(1, 0.5), loc='center left')
+    g.fig.suptitle(f'Separable patterns present in the {layer_of_interest} Layer')
+    plt.tight_layout()
+    g.savefig(f"../derivatives/results/{title}.png", format="png")
