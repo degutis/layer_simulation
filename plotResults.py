@@ -39,12 +39,12 @@ def plotViolin(accuracy, rho_values, CNR_change, title):
     # Map the violinplot function to the grid, with hue for Layer
     g.map(sns.violinplot, 'Layer', 'Accuracy', order=layer_names, palette="Set2", inner = "points")
 
-    g.map(plt.axhline, y=0, linestyle='--', color='gray')
+    g.map(plt.axhline, y=0.5, linestyle='--', color='gray')
 
     g.set_axis_labels("Layer", "Accuracy")
     g.set_titles(row_template="Rho = {row_name}", col_template="CNR_change = {col_name}")
     g.set(ylim=(0, 1))
-
+    
     g.add_legend()
 
     # Show the plot

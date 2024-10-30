@@ -72,13 +72,17 @@ class VoxelResponses:
         boldPattern = np.empty((self.N, self.N, self.N_depth))
         mriPattern = np.empty((self.L, self.L, self.layers))
 
-        for la in range(self.N_depth):
-            sim = cf.simulation(self.N, self.L, self.N_depth, self.layers, seed)
-            gwn = sim.gwnoise()
-            columnPattern[:,:, la], _ = sim.columnPattern(rho,self.deltaRelative,gwn)
+        seed_list = [seed, seed+1, seed+2, seed+3] # three separate 
+        seed_list = np.repeat(seed_list,3)
 
-        for l in range(self.N_depth):
-            boldPattern[:, :, l], _, _ = sim.bold(self.fwhm_layers[l], self.beta_layers[l],columnPattern[:,:,l])
+        if type(rho) == float:
+            rho = np.repeat(rho,self.N_depth)
+
+        for la in range(self.N_depth):
+            sim = cf.simulation(self.N, self.L, self.N_depth, self.layers, seed_list[la])
+            gwn = sim.gwnoise()
+            columnPattern[:,:, la], _ = sim.columnPattern(rho[la],self.deltaRelative,gwn)
+            boldPattern[:, :, la], _, _ = sim.bold(self.fwhm_layers[la], self.beta_layers[la],columnPattern[:,:,la])
 
         drainedSignal = vm.vascModel(boldPattern.transpose((2,1,0)), layers=self.N_depth)
 
@@ -91,12 +95,20 @@ class VoxelResponses:
 
         sim = cf.simulation(self.N, self.L, self.N_depth, self.layers, seed)
         gwn = sim.gwnoise()
-        columnPattern, _ = sim.columnPattern(rho,self.deltaRelative,gwn)
-        boldPattern = np.empty((self.N, self.N, self.N_depth))
-        mriPattern = np.empty((self.L, self.L, self.layers))
-                
-        for l in range(self.N_depth):
-            boldPattern[:, :, l], _, _ = sim.bold(self.fwhm_layers[l], self.beta_layers[l],columnPattern)
+
+        if type(rho) == int:
+            columnPattern, _ = sim.columnPattern(rho,self.deltaRelative,gwn)
+            boldPattern = np.empty((self.N, self.N, self.N_depth))
+            mriPattern = np.empty((self.L, self.L, self.layers))    
+            for l in range(self.N_depth):
+                boldPattern[:, :, l], _, _ = sim.bold(self.fwhm_layers[l], self.beta_layers[l],columnPattern)
+
+        else:
+            for l in range(self.N_depth):
+                columnPattern, _ = sim.columnPattern(rho[l],self.deltaRelative,gwn)
+                boldPattern = np.empty((self.N, self.N, self.N_depth))
+                mriPattern = np.empty((self.L, self.L, self.layers))    
+                boldPattern[:, :, l], _, _ = sim.bold(self.fwhm_layers[l], self.beta_layers[l],columnPattern)
 
         drainedSignal = vm.vascModel(boldPattern.transpose((2,1,0)), layers=self.N_depth)
 

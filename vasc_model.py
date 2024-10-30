@@ -71,6 +71,14 @@ class vascModel:
 
         matrix += np.diag([num / 2] * (x - 2), k=2)  
         matrix += np.diag([num / 2] * (x - 2), k=-2) 
-    
-        return matrix
+
+
+        top_triangle = np.triu(np.ones((x,x)), k=1)
+        gradient_values = np.linspace(0, num, np.sum(top_triangle == 1))
+        top_triangle[top_triangle == 1] = gradient_values
+        np.fill_diagonal(top_triangle, 1)
+        combined = np.dot(matrix,np.round(top_triangle,3))
+        np.fill_diagonal(combined, 1)
+
+        return np.dot(matrix,top_triangle)
 
