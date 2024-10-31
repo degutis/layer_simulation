@@ -5,9 +5,7 @@ import os
 import plotResults
 from scipy import stats
 
-
-
-percent_change=[1,5,10,15,20,30,40,50]
+percent_change=[1,5,10,15,20,30,40]
 
 layers=4
 beta=0.035
@@ -32,8 +30,8 @@ name_dict = {
 
 name_dict2 = {
     0: "Deep",
-    1: "Middle_Deep",
-    2: "Middle_Sup",
+    1: "Middle Deep",
+    2: "Middle Sup",
     3: "Superficial"
 }
 
@@ -56,7 +54,6 @@ for index, folder in enumerate(sorted_folders):
                 X[:,:,:,it,i, ib,index] = X_loaded
                 betaRange = [beta, beta*CNR_change[ib]]
                 
-
                 for ip, percent in enumerate(percent_change):
                     input_seed = [(it*iterations + percent)]
                     vox = sim.VoxelResponses(it,r,r, numTrials_per_class=trials, betaRange=betaRange, layers=layers)                       

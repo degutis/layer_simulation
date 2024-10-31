@@ -14,6 +14,9 @@ def plotViolin(accuracy, rho_values, CNR_change, title):
         layer_names = ["Deep", "Middle", "Superficial"]
     elif numLayers==4:
         layer_names = ["Deep", "Middle Deep", "Middle Superficial", "Superficial"] 
+    elif numLayers==2:
+        layer_names = ["Deep", "Superficial"] 
+
 
     # Flatten the tensor into a long format
     accuracy_flat = accuracy.flatten()
@@ -100,14 +103,14 @@ def setup_df(accuracy, layer_names, rho_values, CNR_change, percent_change, iter
     
     if iterations:
         df_data['Iteration'] = np.tile(np.repeat(np.arange(1, iterations + 1), numParams * numBetas * numPercent), numLayers)
-
+    
     return pd.DataFrame(df_data)
 
 def plotGraph(df, title, y_label, hue_order, layer_of_interest=None):
     
     g = sns.FacetGrid(df, row='Rho', col='CNR_change', margin_titles=True, height=4, aspect=1)
     g.map_dataframe(sns.lineplot, x='Percent_change', y='Accuracy', hue='Layer', 
-                    hue_order=hue_order, palette="Set2", markers=True)
+                    hue_order=hue_order, palette="Set2", errorbar=('se'), markers=True)
     g.set_axis_labels("Misalignment Percent", y_label)
     g.set_titles(row_template="Rho = {row_name}", col_template="CNR_change = {col_name}")
     g.map(plt.axhline, y=0, linestyle='--', color='gray')
@@ -124,6 +127,6 @@ def plotChangeMisalignment(accuracy, rho_values, CNR_change, percent_change, tit
 
 def plotTstat(accuracy, rho_values, CNR_change, percent_change, layer_of_interest, title):
     
-    layer_names = [f'{name} - {layer_of_interest}' for name in ["Deep", "Middle", "Superficial"][:accuracy.shape[0]]]
+    layer_names = [f'{name} - {layer_of_interest}' for name in ["Deep", "Middle Deep", "Middle Superficial", "Superficial"][:accuracy.shape[0]]]
     df = setup_df(accuracy, layer_names, rho_values, CNR_change, percent_change)
     plotGraph(df, title, "T-value (One-sample t-test)", layer_names, layer_of_interest)

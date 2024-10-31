@@ -12,8 +12,8 @@ cf.createFolders()
 layer_index = int(sys.argv[1])  # This defines the layers to decode (e.g., [9, 10, 11], etc.)
 iterations=30
 layers = 4
-rho_values = [0.5, 0.6]
-CNR_change = [2, 3]
+rho_values = [0.4, 0.5, 0.6]
+CNR_change = [2, 3, 4]
 rval = len(rho_values)
 CNR_values = len(CNR_change)
 
