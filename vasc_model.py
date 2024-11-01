@@ -88,6 +88,6 @@ class vascModel:
         sigma_values = fwhm_values / (2 * np.sqrt(2 * np.log(2)))  
 
         for z in range(matrix.shape[2]-1):
-            matrix[:, :, z:z+1] = gaussian_filter1d(matrix[:, :, z:z+1], sigma=sigma_values[z])
+            matrix[:, :, z:z+1, :] = gaussian_filter1d(matrix[:, :, z:z+1, :], sigma=sigma_values[z])
 
         return matrix
