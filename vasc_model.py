@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.ndimage import gaussian_filter1d
 
 class vascModel:
     """
@@ -26,11 +27,11 @@ class vascModel:
         Calculates the value of p2t based on the base value, number of layers, and base number of layers.
     """
 
-    def __init__(self, orig_response, layers, laminarPSF=0.04):
+    def __init__(self, orig_response, layers, fwhm):
 
         self.layers = layers
         self.orig_response = orig_response
-        self.laminarPSF = laminarPSF
+        self.fwhm = fwhm
 
         if layers!=10:
             self.p2t = self.__calculate_p2t__(6.3, layers, 10)
@@ -40,10 +41,9 @@ class vascModel:
         matrix = np.eye(self.layers)
         lower_triangle = np.tril(np.ones((self.layers, self.layers)), k=-1)
         self.p2t_matrix = matrix + (1/self.p2t)*lower_triangle
-        self.PSF_3D = self.__calculate_3DPSF_matrix__(matrix, self.laminarPSF)
-        self.laminarSpread = np.dot(self.p2t_matrix, self.PSF_3D)
-        self.outputMatrix = np.einsum('ij,jkl->ikl', self.laminarSpread, self.orig_response)
-
+        
+        PSF_3D_matrix = self.__calculate3DPSF_gaussian__(matrix, self.fwhm)
+        self.outputMatrix = np.einsum('ij,jkl->ikl', self.p2t_matrix, PSF_3D_matrix)
 
 
     def __calculate_p2t__(self, p2t_model, n, n_model):
@@ -82,3 +82,12 @@ class vascModel:
 
         return np.dot(matrix,top_triangle)
 
+    def __calculate3DPSF_gaussian__(self,matrix, fwhm):
+        
+        fwhm_values = np.linspace(fwhm[0], fwhm[1], matrix.shape[2]-1)  
+        sigma_values = fwhm_values / (2 * np.sqrt(2 * np.log(2)))  
+
+        for z in range(matrix.shape[2]-1):
+            matrix[:, :, z:z+1] = gaussian_filter1d(matrix[:, :, z:z+1], sigma=sigma_values[z])
+
+        return matrix

@@ -86,7 +86,7 @@ class VoxelResponses:
             columnPattern[:,:, la], _ = sim.columnPattern(rho[la],self.deltaRelative,gwn)
             boldPattern[:, :, la], _, _ = sim.bold(self.fwhm_layers[la], self.beta_layers[la],columnPattern[:,:,la])
 
-        drainedSignal = vm.vascModel(boldPattern.transpose((2,1,0)), layers=self.N_depth)
+        drainedSignal = vm.vascModel(boldPattern.transpose((2,1,0)), layers=self.N_depth, fwhm=self.fwhmRange)
 
         mriPattern = sim.mri(self.w, drainedSignal.outputMatrix.transpose(1,2,0))
 
@@ -112,7 +112,7 @@ class VoxelResponses:
                 mriPattern = np.empty((self.L, self.L, self.layers))    
                 boldPattern[:, :, l], _, _ = sim.bold(self.fwhm_layers[l], self.beta_layers[l],columnPattern)
 
-        drainedSignal = vm.vascModel(boldPattern.transpose((2,1,0)), layers=self.N_depth)
+        drainedSignal = vm.vascModel(boldPattern.transpose((2,1,0)), layers=self.N_depth, fwhm=self.fwhmRange)
 
         mriPattern = sim.mri(self.w, drainedSignal.outputMatrix.transpose(1,2,0))
 
@@ -139,7 +139,7 @@ class VoxelResponses:
                 columnPattern[:,:, la, tr], _ = sim.columnPattern(rho, self.deltaRelative, gwn)
                 boldPattern[:, :, la, tr], _, _ = sim.bold(self.fwhm_layers[la], self.beta_layers[la], columnPattern[:,:, la, tr])
                     
-            drainedSignal = vm.vascModel(boldPattern[:, :, :, tr].transpose((2, 1, 0)), layers=self.N_depth)
+            drainedSignal = vm.vascModel(boldPattern[:, :, :, tr].transpose((2, 1, 0)), layers=self.N_depth, fwhm=self.fwhmRange)
             drainedSignal_output[:, :, :, tr] = drainedSignal.outputMatrix.transpose(1, 2, 0)
             
             padded_matrix_zeros[:, :, self.N_depth:self.N_depth*2, tr] = drainedSignal_output[:, :, :, tr]
