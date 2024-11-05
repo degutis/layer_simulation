@@ -1,6 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy.ndimage import gaussian_filter1d
+from scipy.stats import norm
 
 class vascModel:
     """
@@ -41,10 +40,10 @@ class vascModel:
         matrix = np.eye(self.layers)
         lower_triangle = np.tril(np.ones((self.layers, self.layers)), k=-1)
         self.p2t_matrix = matrix + (1/self.p2t)*lower_triangle
+        self.PSF_3D_matrix = self.__calculate3DPSF_gaussian__(matrix, self.fwhm)
+        self.tranformationMatrix = np.dot(self.p2t_matrix,self.PSF_3D_matrix)
         
-        PSF_3D_matrix = self.__calculate3DPSF_gaussian__(matrix, self.fwhm)
-        self.outputMatrix = np.einsum('ij,jkl->ikl', self.p2t_matrix, PSF_3D_matrix)
-
+        self.outputMatrix = np.einsum('ij,jkl->ikl', self.p2t_matrix, orig_response)
 
     def __calculate_p2t__(self, p2t_model, n, n_model):
         
@@ -84,10 +83,19 @@ class vascModel:
 
     def __calculate3DPSF_gaussian__(self,matrix, fwhm):
         
-        fwhm_values = np.linspace(fwhm[0], fwhm[1], matrix.shape[2]-1)  
+        matrix_size = matrix.shape[0]
+        fwhm_values = np.linspace(fwhm[0], fwhm[1], matrix_size)  
         sigma_values = fwhm_values / (2 * np.sqrt(2 * np.log(2)))  
+        transformation_matrix = np.zeros((matrix_size, matrix_size))
 
-        for z in range(matrix.shape[2]-1):
-            matrix[:, :, z:z+1, :] = gaussian_filter1d(matrix[:, :, z:z+1, :], sigma=sigma_values[z])
+        for i, sigma in enumerate(sigma_values):
+            x = np.arange(matrix_size)
+            gaussian = norm.pdf(x, loc=i, scale=sigma)  
+            transformation_matrix[i, :] = gaussian
 
-        return matrix
+        for col in range(transformation_matrix.shape[1]):
+            max_val = np.max(transformation_matrix[:, col])
+            if max_val > 0: 
+                transformation_matrix[:, col] /= max_val
+
+        return transformation_matrix

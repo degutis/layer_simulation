@@ -40,14 +40,14 @@ class VoxelResponses:
         np.random.seed(self.seed)
         self.numTrials_per_class = numTrials_per_class
 
-    def samePatternAcrossColumn(self):
+#    def samePatternAcrossColumn(self):
 
-        activity_row_class1, boldPattern_class1  = self.__generateLaminarColumnarPattern__(self.seed, self.rho_c1)
-        activity_row_class2, boldPattern_class2  = self.__generateLaminarColumnarPattern__(self.seed+13086, self.rho_c2)
+#        activity_row_class1, boldPattern_class1  = self.__generateLaminarColumnarPattern__(self.seed, self.rho_c1)
+#        activity_row_class2, boldPattern_class2  = self.__generateLaminarColumnarPattern__(self.seed+13086, self.rho_c2)
 
-        activity_matrix_permuted, y_permuted = self.__createTrialMatrix__(activity_row_class1, activity_row_class2)
+#        activity_matrix_permuted, y_permuted = self.__createTrialMatrix__(activity_row_class1, activity_row_class2)
 
-        return activity_matrix_permuted, y_permuted, boldPattern_class1, boldPattern_class2
+#        return activity_matrix_permuted, y_permuted, boldPattern_class1, boldPattern_class2
 
     def diffPatternsAcrossColumn(self):
 
@@ -73,6 +73,12 @@ class VoxelResponses:
         columnPattern = np.empty((self.N, self.N, self.N_depth))
         boldPattern = np.empty((self.N, self.N, self.N_depth))
         mriPattern = np.empty((self.L, self.L, self.layers))
+        mriPattern_extended = np.empty((self.L, self.L, self.layers_mriSampling, self.numTrials_per_class))
+        mriPattern = np.empty((self.L, self.L, self.layers, self.numTrials_per_class))
+
+        padded_matrix_zeros = np.zeros((self.N, self.N, self.N_depth_mriSampling))
+        gaussian_noise_matrix = np.random.normal(loc=1, scale=0.1, size=(self.N, self.N, self.N_depth_mriSampling))
+
 
         seed_list = [seed, seed+1, seed+2, seed+3] # three separate 
         seed_list = np.repeat(seed_list,3)
@@ -85,38 +91,41 @@ class VoxelResponses:
             gwn = sim.gwnoise()
             columnPattern[:,:, la], _ = sim.columnPattern(rho[la],self.deltaRelative,gwn)
             boldPattern[:, :, la], _, _ = sim.bold(self.fwhm_layers[la], self.beta_layers[la],columnPattern[:,:,la])
-
+        
         drainedSignal = vm.vascModel(boldPattern.transpose((2,1,0)), layers=self.N_depth, fwhm=self.fwhmRange)
+        padded_matrix_zeros[:, :, self.N_depth:self.N_depth*2] = drainedSignal.outputMatrix.transpose(1, 2, 0)
+        padded_matrix_zeros += gaussian_noise_matrix
 
-        mriPattern = sim.mri(self.w, drainedSignal.outputMatrix.transpose(1,2,0))
+        mriPattern_extended = sim.mri(self.w, padded_matrix_zeros)
+        mriPattern = mriPattern_extended[:,:,self.layers:self.layers*2] 
 
         return mriPattern.reshape(mriPattern.shape[0]*mriPattern.shape[1],mriPattern.shape[2]), drainedSignal.outputMatrix.transpose(1,2,0)        
 
 
-    def __generateLaminarColumnarPattern__(self, seed, rho):
+#    def __generateLaminarColumnarPattern__(self, seed, rho):
 
-        sim = cf.simulation(self.N, self.L, self.N_depth_mriSampling, self.layers_mriSampling, seed)
-        gwn = sim.gwnoise()
+#        sim = cf.simulation(self.N, self.L, self.N_depth_mriSampling, self.layers_mriSampling, seed)
+#        gwn = sim.gwnoise()
 
-        if type(rho) == int:
-            columnPattern, _ = sim.columnPattern(rho,self.deltaRelative,gwn)
-            boldPattern = np.empty((self.N, self.N, self.N_depth))
-            mriPattern = np.empty((self.L, self.L, self.layers))    
-            for l in range(self.N_depth):
-                boldPattern[:, :, l], _, _ = sim.bold(self.fwhm_layers[l], self.beta_layers[l],columnPattern)
+#        if type(rho) == int:
+#            columnPattern, _ = sim.columnPattern(rho,self.deltaRelative,gwn)
+#            boldPattern = np.empty((self.N, self.N, self.N_depth))
+#            mriPattern = np.empty((self.L, self.L, self.layers))    
+#            for l in range(self.N_depth):
+#                boldPattern[:, :, l], _, _ = sim.bold(self.fwhm_layers[l], self.beta_layers[l],columnPattern)
 
-        else:
-            for l in range(self.N_depth):
-                columnPattern, _ = sim.columnPattern(rho[l],self.deltaRelative,gwn)
-                boldPattern = np.empty((self.N, self.N, self.N_depth))
-                mriPattern = np.empty((self.L, self.L, self.layers))    
-                boldPattern[:, :, l], _, _ = sim.bold(self.fwhm_layers[l], self.beta_layers[l],columnPattern)
+#        else:
+#            for l in range(self.N_depth):
+#                columnPattern, _ = sim.columnPattern(rho[l],self.deltaRelative,gwn)
+#                boldPattern = np.empty((self.N, self.N, self.N_depth))
+#                mriPattern = np.empty((self.L, self.L, self.layers))    
+#                boldPattern[:, :, l], _, _ = sim.bold(self.fwhm_layers[l], self.beta_layers[l],columnPattern)
 
-        drainedSignal = vm.vascModel(boldPattern.transpose((2,1,0)), layers=self.N_depth, fwhm=self.fwhmRange)
+#        drainedSignal = vm.vascModel(boldPattern.transpose((2,1,0)), layers=self.N_depth, fwhm=self.fwhmRange)
 
-        mriPattern = sim.mri(self.w, drainedSignal.outputMatrix.transpose(1,2,0))
+#        mriPattern = sim.mri(self.w, drainedSignal.outputMatrix.transpose(1,2,0))
 
-        return mriPattern.reshape(mriPattern.shape[0]*mriPattern.shape[1],mriPattern.shape[2]), drainedSignal.outputMatrix.transpose(1,2,0)       
+#        return mriPattern.reshape(mriPattern.shape[0]*mriPattern.shape[1],mriPattern.shape[2]), drainedSignal.outputMatrix.transpose(1,2,0)       
 
 
     def __generateLaminarPatternSingleLayer__(self, seed, rho, layer_of_interest):
@@ -179,11 +188,15 @@ class VoxelResponses:
         # nt - number acquisitions - otherwise have autocorrelation. 
 
         V = self.w**2*sliceThickness
-        self.SNR = 1/cf.noiseModel(V,TR,nT,differentialFlag,noiseType=noiseType)
+        sim = cf.simulation(self.N, self.L, self.N_depth_mriSampling, self.layers_mriSampling, self.seed)
+        self.sigma, physNoise = sim.noiseModel(V,TR,nT,differentialFlag,noiseType=noiseType)
+        voxel = sim.mri(self.w, physNoise)
+        voxel.resize(voxel.shape[0]*voxel.shape[1],voxel.shape[2])
+        self.physicalNoise = np.tile(voxel, (self.numTrials_per_class*2, 1, 1))
 
         rg = np.random.RandomState(self.seed+56)
 
-        return mriPattern + (1/self.SNR) * rg.randn(*mriPattern.shape)
+        return mriPattern + self.sigma * rg.randn(*mriPattern.shape) + self.physicalNoise[:,:,self.layers:self.layers*2]
    
 
     def runSVM_classifier_acrossLayers(self, layer_responses, y_permuted, n_splits=5):

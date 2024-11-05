@@ -4,6 +4,7 @@ from scipy.stats import norm
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+from scipy.fft import fftn, ifftn
 
 class simulation:
     """
@@ -24,14 +25,19 @@ class simulation:
         self.dx = L/self.N
         self.dk = 1/self.L
         self.Fs = 1/self.dx
-        
+
+        self.dz = L_depth/self.N_depth
+
         self.x = np.fft.fftshift(
             np.concatenate(
                 (np.arange(0,self.N/2),np.arange(-self.N/2,0))) * self.dx)
         self.k = np.fft.fftshift(
             np.concatenate(
                 (np.arange(0,self.N/2),np.arange(-self.N/2,0))) * self.dk)
-        self.x1, self.x2 = np.meshgrid(self.x, self.x)
+
+        self.z = np.fft.fftshift(np.arange(0, self.N_depth) * self.dz)
+        self.x1, self.x2, self.x3 = np.meshgrid(self.x, self.x, self.z)
+    
         self.k1, self.k2 = np.meshgrid(self.k, self.k)
         
     def gwnoise(self):
@@ -201,76 +207,86 @@ class simulation:
         #plt.savefig('../derivatives/pattern_simulation/'+title.replace(" ","") +'.png')
 
 
-def noiseModel(V,TR,nT,differentialFlag,*args,**kwargs):
-    """
-    sigma = noiseModel(V,TR,nT,differentialFlag,...) calculates the
-    standard deviation of fMRI noise relative to signal after differential analysis of
-    multiple measurements nT (see below) using voxel volume V and TR.
- 
-    nT is the number of volumes to be averaged:
-    it is used to scale the thermal noise factor, assuming thermal noise is
-    uncorrelated in time
-    AND it is used to scale the physiological noise factor under the
-    assuption that physiological noise is a AR(1) process with
-    q = exp(-TR/tau), tau = 15 s (Purdon and Weisskoff 1998)
- 
-    with differential==true flag nT/2 volumes belong to condition A and nT/2
-    volumes to condition B
- 
-    The noise model is based on Triantafyllou et al. 2005.
-    It is specified as an additional argument 
-     noiseType = {'3T','7T','Thermal','Physiological'}
-    or as additional model parameters:
-     k,l,T1 corresponding to kappa and lambda in Tiantafyllou et al. 2005 and time constant T1
-    """
-    TR0 = 5.4
+    def noiseModel(self, V,TR,nT,differentialFlag,*args,**kwargs):
+        """
+        sigma = noiseModel(V,TR,nT,differentialFlag,...) calculates the
+        standard deviation of fMRI noise relative to signal after differential analysis of
+        multiple measurements nT (see below) using voxel volume V and TR.
     
-    noiseType = kwargs.get('noiseType', None)
-    k = kwargs.get('k', None)
-    l =  kwargs.get('l', None)
-    T1 = kwargs.get('T1', None)
+        nT is the number of volumes to be averaged:
+        it is used to scale the thermal noise factor, assuming thermal noise is
+        uncorrelated in time
+        AND it is used to scale the physiological noise factor under the
+        assuption that physiological noise is a AR(1) process with
+        q = exp(-TR/tau), tau = 15 s (Purdon and Weisskoff 1998)
     
-    if noiseType == None:
-        if l == None or k == None or T1 == None:
-            raise ValueError('k,l or T1 not specified!')
-    else:
-        if l != None or k != None or T1 != None:
-            raise ValueError('specify either noiseType or (k,l and T1), not both!')
-    if noiseType == '3T':
-        k = 6.6567 
-        l = 0.0129 
-        T1 = 1.607 
-    if noiseType =='7T':
-        k = 9.9632 
-        l = 0.0113 
-        T1 = 1.939 
-    if noiseType =='Thermal':
-        k = 9.9632 
-        l = 0 
-        T1 = 1.939 
-    if noiseType == 'Physiological':
-        k = np.Inf 
-        l = 0.0113 
-        T1 = 1.939 
+        with differential==true flag nT/2 volumes belong to condition A and nT/2
+        volumes to condition B
     
-    if not(differentialFlag) and nT != 1:
-        raise ValueError('for multiple measurements only differential implemented!')
-    elif nT == 1:
-        F = np.sqrt(np.tanh(TR/(2*T1))/np.tanh(TR0/(2*T1)))
-        k = k * F
-        sigma = np.sqrt(1+l**2*k**2*V**2)/(k*V)
-        return sigma
-    
-    s = 0
-    assert nT%2==0 
-    for t1 in range(1,int(nT/2)+1):
-        for t2 in range(1,int(nT/2)+1):
-            s = s + np.exp((-TR*abs(t1-t2))/15)
-    
-    F = np.sqrt(np.tanh(TR/(2*T1))/np.tanh(TR0/(2*T1)))
-    k = k * F
-    sigma = np.sqrt((4/(k**2*V**2*nT)) + ((2*l**2)/(nT/2)**2)*s)
-    return sigma
+        The noise model is based on Triantafyllou et al. 2005.
+        It is specified as an additional argument 
+        noiseType = {'3T','7T','Thermal','Physiological'}
+        or as additional model parameters:
+        k,l,T1 corresponding to kappa and lambda in Tiantafyllou et al. 2005 and time constant T1
+        """
+        TR0 = 5.4
+        
+        noiseType = kwargs.get('noiseType', None)
+        k = kwargs.get('k', None)
+        l =  kwargs.get('l', None)
+        T1 = kwargs.get('T1', None)
+        
+        physNoiseSpatialWidth = 0.01
+
+        if noiseType == None:
+            if l == None or k == None or T1 == None:
+                raise ValueError('k,l or T1 not specified!')
+        else:
+            if l != None or k != None or T1 != None:
+                raise ValueError('specify either noiseType or (k,l and T1), not both!')
+        if noiseType == '3T':
+            k = 6.6567 
+            l = 0.0129 
+            T1 = 1.607 
+        if noiseType =='7T':
+            k = 9.9632 
+            l = 0.0113 
+            T1 = 1.939 
+        if noiseType =='Thermal':
+            k = 9.9632 
+            l = 0 
+            T1 = 1.939 
+        if noiseType == 'Physiological':
+            k = np.Inf 
+            l = 0.0113 
+            T1 = 1.939 
+        
+        if not(differentialFlag) and nT != 1:
+            raise ValueError('for multiple measurements only differential implemented!')
+        elif nT == 1:
+            F = np.sqrt(np.tanh(TR/(2*T1))/np.tanh(TR0/(2*T1)))
+            k = k * F
+            sigma = np.sqrt(1+l**2*k**2*V**2)/(k*V)
+        
+        else:
+            s = 0
+            assert nT%2==0 
+            for t1 in range(1,int(nT/2)+1):
+                for t2 in range(1,int(nT/2)+1):
+                    s = s + np.exp((-TR*abs(t1-t2))/15)
+            
+            F = np.sqrt(np.tanh(TR/(2*T1))/np.tanh(TR0/(2*T1)))
+            k = k * F
+            sigma = np.sqrt((4/(k**2*V**2*nT)) + ((2*l**2)/(nT/2)**2)*s)
+
+        physNoiseFilter = norm.pdf(np.sqrt(self.x1**2 + self.x2**2 + self.x3**2), 0, 
+                        physNoiseSpatialWidth / (2 * np.sqrt(2 * np.log(2))))
+        FphysNoiseFilterNotNormalized = fftn(physNoiseFilter) * self.dx
+        FphysNoiseFilter = FphysNoiseFilterNotNormalized / np.sqrt(meanpower(FphysNoiseFilterNotNormalized))   
+        Fnoise = fftn(np.random.randn(*self.x1.shape)) * self.dx
+        physNoise = l * ifftn(Fnoise * FphysNoiseFilter) * self.dk
+
+        return sigma, np.real(physNoise)
 
 def meanpower(s):
     """

@@ -31,9 +31,6 @@ for it in range(iterations):
 
             vox = sim.VoxelResponses(it,r,r, numTrials_per_class=numTrials_per_class, betaRange=betaRange, layers=layers)
             
-            X,y, _, _ = vox.samePatternAcrossColumn()
-            accuracy_samePattern[:,it,i, ib] = vox.runSVM_classifier_acrossLayers(X,y)
-
             X_3,y_3,_, _ = vox.diffPatternsAcrossColumn_oneDecodable([9,10,11])
             accuracy_superficial[:,it,i, ib] = vox.runSVM_classifier_acrossLayers(X_3, y_3)
 
