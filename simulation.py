@@ -11,16 +11,16 @@ from sklearn.pipeline import Pipeline
 
 
 class VoxelResponses:
-    def __init__(self, seed, rho_c1, rho_c2, N=320, L = 16, N_depth=12, layers=4, deltaRelative=0.5, betaRange = [0.035, 0.035*2], samplingVox=1, numTrials_per_class=50, fwhmRange = [0.83, 1.78]):
+    def __init__(self, seed, rho_c1, rho_c2, N=320, L = 16, N_depth=9, layers=3, deltaRelative=0.5, betaRange = [0.035, 0.035*2], samplingVox=1, numTrials_per_class=50, fwhmRange = [0.83, 1.78]):
         
         # 64:3 ratio between N and L.
 
         self.N = N   
         self.L = L   
         self.N_depth = N_depth
-        self.N_depth_mriSampling = N_depth*3
         self.layers = layers
-        self.layers_mriSampling = layers*3
+        self.layers_mriSampling = self.layers*3-1
+        self.N_depth_mriSampling = self.N_depth*3-self.layers
         
         self.deltaRelative = deltaRelative
         self.w = samplingVox
@@ -99,6 +99,7 @@ class VoxelResponses:
         mriPattern_extended = sim.mri(self.w, padded_matrix_zeros)
         mriPattern = mriPattern_extended[:,:,self.layers:self.layers*2] 
 
+
         return mriPattern.reshape(mriPattern.shape[0]*mriPattern.shape[1],mriPattern.shape[2]), drainedSignal.outputMatrix.transpose(1,2,0)        
 
 
@@ -155,7 +156,7 @@ class VoxelResponses:
             padded_matrix_zeros[:,:,:,tr] += gaussian_noise_matrix[:,:,:,tr]
             mriPattern_extended[:, :, :, tr] = sim.mri(self.w, padded_matrix_zeros[:,:,:,tr])
             mriPattern[:, :, :, tr] = mriPattern_extended[:, :, self.layers:self.layers*2, tr]
-
+        
         mriPattern_reshaped = mriPattern.reshape(mriPattern.shape[0] * mriPattern.shape[1], mriPattern.shape[2], mriPattern.shape[3])
         
         return mriPattern_reshaped.transpose(2,0,1), drainedSignal_output       

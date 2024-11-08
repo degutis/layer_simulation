@@ -119,14 +119,21 @@ def plotGraph(df, title, y_label, hue_order, layer_of_interest=None):
     plt.tight_layout()
     g.savefig(f"../derivatives/results/{title}.png", format="png")
 
-def plotChangeMisalignment(accuracy, rho_values, CNR_change, percent_change, title):
+def plotChangeMisalignment(accuracy, rho_values, CNR_change, percent_change, layer_of_interest, title):
     
     layer_names = ["Deep", "Middle", "Superficial"] if accuracy.shape[0] == 3 else ["Deep", "Middle Deep", "Middle Superficial", "Superficial"]
     df = setup_df(accuracy, layer_names, rho_values, CNR_change, percent_change, iterations=accuracy.shape[1])
-    plotGraph(df, title, "Accuracy Difference", layer_names)
+    plotGraph(df, title, "Accuracy Difference", layer_names, layer_of_interest)
 
 def plotTstat(accuracy, rho_values, CNR_change, percent_change, layer_of_interest, title):
     
-    layer_names = [f'{name} - {layer_of_interest}' for name in ["Deep", "Middle Deep", "Middle Superficial", "Superficial"][:accuracy.shape[0]]]
+    numLayers = accuracy.shape[0]
+
+    if numLayers==3:
+        origName = ["Deep", "Middle", "Superficial"]
+    elif numLayers==4:
+        origName = ["Deep", "Middle Deep", "Middle Superficial", "Superficial"] 
+
+    layer_names = [f'{name} - {layer_of_interest}' for name in origName]
     df = setup_df(accuracy, layer_names, rho_values, CNR_change, percent_change)
     plotGraph(df, title, "T-value (One-sample t-test)", layer_names, layer_of_interest)

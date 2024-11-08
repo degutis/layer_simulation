@@ -7,13 +7,13 @@ from scipy import stats
 
 percent_change=[1,5,10,15,20,30,40]
 
-layers=4
+layers=3
 beta=0.035
 trials = 50
-iterations=30
+iterations=15
 
-rho_values = [0.5, 0.6]
-CNR_change = [2, 3]
+rho_values = [0.4, 0.5, 0.6]
+CNR_change = [2, 3, 4]
 rval = len(rho_values)
 CNR_values = len(CNR_change)
 voxels = 256
@@ -23,16 +23,14 @@ folders_layers = [f.name for f in os.scandir(folder_path) if f.is_dir() and f.na
 
 name_dict = {
     0: "LayerOfIntDeep",
-    1: "LayerOfIntMiddle_Deep",
-    2: "LayerOfIntMiddle_Sup",
-    3: "LayerOfIntSuperficial"
+    1: "LayerOfIntMiddle",
+    2: "LayerOfIntSuperficial",
 }
 
 name_dict2 = {
     0: "Deep",
-    1: "Middle Deep",
-    2: "Middle Sup",
-    3: "Superficial"
+    1: "Middle",
+    2: "Superficial"
 }
 
 
@@ -64,7 +62,7 @@ for index, folder in enumerate(sorted_folders):
     accuracy_diff = accuracy_new - np.repeat(accuracy_old[..., np.newaxis], len(percent_change), axis=4)
     np.save(f'../derivatives/results/Difference_Accuracy_LayerResponse{index}_rho{(rho_values)}_CNR{str(CNR_change)}_MisPerc{percent_change}.npy', accuracy_diff)
 
-    plotResults.plotChangeMisalignment(accuracy_diff, rho_values, CNR_change, percent_change, f'MisalignmentChange{name_dict2[index]}')
+    plotResults.plotChangeMisalignment(accuracy_diff, rho_values, CNR_change, percent_change, name_dict2[index], f'MisalignmentChange{name_dict2[index]}')
     
     accuracy_layerSubtraction = accuracy_new - accuracy_new[index, :,:,:]
     t_stat, _ = stats.ttest_1samp(accuracy_layerSubtraction, 0, axis=1)

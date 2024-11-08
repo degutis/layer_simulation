@@ -10,15 +10,15 @@ cf.createFolders()
 
 # Define some parameters
 iterations=30
-layers = 2
-depths = 12
+layers = 3
+depths = 9
 
 rho_initial_values = np.arange(0.2, 0.7, 0.1)
 rho_matrix = np.array([[np.round(start + i * 0.05, 3) for i in range(depths)] for start in rho_initial_values])
 rho_matrix = rho_matrix[:, ::-1]
 rval = rho_matrix.shape[0]
 
-CNR_change = [1.5,2,2.5,3]
+CNR_change = [2, 3, 4]
 CNR_values = len(CNR_change)
 
 beta = 0.035
@@ -38,4 +38,4 @@ for it in range(iterations):
             accuracy[:,it, i, ib] = vox.runSVM_classifier_acrossLayers(X, y)
 
 rho_values = rho_matrix[:,0]
-plotResults.plotViolin(accuracy, rho_values, CNR_change, "2Layers_GRID_DiffPatterns_rhoChangeAcrossLayers")
+plotResults.plotViolin(accuracy, rho_values, CNR_change, "Layers_GRID_DiffPatterns_rhoChangeAcrossLayers")

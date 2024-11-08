@@ -10,8 +10,8 @@ cf.createFolders()
 
 # Define some parameters
 layer_index = int(sys.argv[1])  # This defines the layers to decode (e.g., [9, 10, 11], etc.)
-iterations=30
-layers = 4
+iterations=15
+layers = 3
 rho_values = [0.4, 0.5, 0.6]
 CNR_change = [2, 3, 4]
 rval = len(rho_values)
@@ -26,14 +26,12 @@ layer_dict = {
     0: [0, 1, 2],
     1: [3, 4, 5],
     2: [6, 7, 8],
-    3: [9, 10, 11]
 }
 
 name_dict = {
     0: "Deep",
-    1: "Middle_Deep",
-    2: "Middle_Sup",
-    3: "Superficial"
+    1: "Middle",
+    2: "Superficial",
 }
 
 pathName = f'../derivatives/pipeline_files/Layers{layers}_Beta{beta}_Trials{numTrials_per_class}_LayerOfInt{name_dict[layer_index]}'
