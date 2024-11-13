@@ -7,13 +7,13 @@ from scipy import stats
 
 percent_change=[1,5,10,15,20,30,40]
 
-layers=3
+layers=4
 beta=0.035
 trials = 50
 iterations=15
 
 rho_values = [0.4, 0.5, 0.6]
-CNR_change = [2, 3, 4]
+CNR_change = [1, 2, 3]
 rval = len(rho_values)
 CNR_values = len(CNR_change)
 voxels = 256
@@ -23,14 +23,16 @@ folders_layers = [f.name for f in os.scandir(folder_path) if f.is_dir() and f.na
 
 name_dict = {
     0: "LayerOfIntDeep",
-    1: "LayerOfIntMiddle",
-    2: "LayerOfIntSuperficial",
+    1: "LayerOfIntMiddleDeep",
+    2: "LayerOfIntMiddleSuperficial",
+    3: "LayerOfIntSuperficial",
 }
 
 name_dict2 = {
     0: "Deep",
-    1: "Middle",
-    2: "Superficial"
+    1: "MiddleDeep",
+    2: "MiddleSuperficial",
+    3: "Superficial"
 }
 
 

@@ -19,8 +19,13 @@ class VoxelResponses:
         self.L = L   
         self.N_depth = N_depth
         self.layers = layers
-        self.layers_mriSampling = self.layers*3-1
-        self.N_depth_mriSampling = self.N_depth*3-self.layers
+
+        if self.layers==3:
+            self.layers_mriSampling = self.layers*3-1
+            self.N_depth_mriSampling = self.N_depth*3-self.layers
+        elif self.layers==4:
+            self.layers_mriSampling = self.layers*3
+            self.N_depth_mriSampling = self.N_depth*3
         
         self.deltaRelative = deltaRelative
         self.w = samplingVox
@@ -184,20 +189,26 @@ class VoxelResponses:
 
         return activity_matrix_permuted, y_permuted
 
-    def __generateNoiseMatrix__(self, mriPattern, sliceThickness = 1, TR = 2, nT = 1, differentialFlag = False, noiseType="7T"):    
+    def __generateNoiseMatrix__(self, mriPattern, physiologicalNoise_3D = False, sliceThickness = 1, TR = 2, nT = 1, differentialFlag = False, noiseType="7T"):    
         
         # nt - number acquisitions - otherwise have autocorrelation. 
 
         V = self.w**2*sliceThickness
-        sim = cf.simulation(self.N, self.L, self.N_depth_mriSampling, self.layers_mriSampling, self.seed)
-        self.sigma, physNoise = sim.noiseModel(V,TR,nT,differentialFlag,noiseType=noiseType)
-        voxel = sim.mri(self.w, physNoise)
-        voxel.resize(voxel.shape[0]*voxel.shape[1],voxel.shape[2])
-        self.physicalNoise = np.tile(voxel, (self.numTrials_per_class*2, 1, 1))
-
         rg = np.random.RandomState(self.seed+56)
 
-        return mriPattern + self.sigma * rg.randn(*mriPattern.shape) + self.physicalNoise[:,:,self.layers:self.layers*2]
+        if physiologicalNoise_3D:
+            sim = cf.simulation(self.N, self.L, self.N_depth_mriSampling, self.layers_mriSampling, self.seed)
+            self.sigma, physNoise = sim.noiseModel(V,TR,nT, physiologicalNoise_3D = True, differentialFlag = False, noiseType=noiseType)
+            voxel = sim.mri(self.w, physNoise)
+            voxel.resize(voxel.shape[0]*voxel.shape[1],voxel.shape[2])
+            self.physicalNoise = np.tile(voxel, (self.numTrials_per_class*2, 1, 1))
+            return mriPattern + self.sigma * rg.randn(*mriPattern.shape) + self.physicalNoise[:,:,self.layers:self.layers*2]
+        
+        else:
+            sim = cf.simulation(self.N, self.L, self.N_depth_mriSampling, self.layers_mriSampling, self.seed)
+            self.sigma = sim.noiseModel(V,TR,nT, physiologicalNoise_3D = False, differentialFlag = False, noiseType=noiseType)
+            return mriPattern + self.sigma * rg.randn(*mriPattern.shape)
+            
    
 
     def runSVM_classifier_acrossLayers(self, layer_responses, y_permuted, n_splits=5):

@@ -11,9 +11,9 @@ cf.createFolders()
 # Define some parameters
 layer_index = int(sys.argv[1])  # This defines the layers to decode (e.g., [9, 10, 11], etc.)
 iterations=15
-layers = 3
+layers = 4
 rho_values = [0.4, 0.5, 0.6]
-CNR_change = [2, 3, 4]
+CNR_change = [1, 2, 3]
 rval = len(rho_values)
 CNR_values = len(CNR_change)
 
@@ -26,12 +26,14 @@ layer_dict = {
     0: [0, 1, 2],
     1: [3, 4, 5],
     2: [6, 7, 8],
+    3: [9, 10, 11],
 }
 
 name_dict = {
     0: "Deep",
-    1: "Middle",
-    2: "Superficial",
+    1: "Middle Deep",
+    2: "Middle Superficial",
+    3: "Superficial",
 }
 
 pathName = f'../derivatives/pipeline_files/Layers{layers}_Beta{beta}_Trials{numTrials_per_class}_LayerOfInt{name_dict[layer_index]}'
@@ -41,7 +43,7 @@ for it in range(iterations):
     for i,r in enumerate(rho_values):
         for ib,b in enumerate(CNR_change):
             betaRange = [beta, beta*CNR_change[ib]]
-            vox = sim.VoxelResponses(it,r,r, numTrials_per_class=numTrials_per_class, betaRange=betaRange, layers=layers)                       
+            vox = sim.VoxelResponses(it,r,r, numTrials_per_class=numTrials_per_class, betaRange=betaRange, layers=layers, N_depth=layers*3)                       
             X,y,_, _ = vox.diffPatternsAcrossColumn_oneDecodable(layer_dict[layer_index])
 
             nameFile = f'{pathName}/Iteration{it}_Rho{r}_CNR{b}.pickle'

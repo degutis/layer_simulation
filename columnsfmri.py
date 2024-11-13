@@ -207,7 +207,7 @@ class simulation:
         #plt.savefig('../derivatives/pattern_simulation/'+title.replace(" ","") +'.png')
 
 
-    def noiseModel(self, V,TR,nT,differentialFlag,*args,**kwargs):
+    def noiseModel(self, V,TR,nT,differentialFlag, physiologicalNoise_3D = False, *args,**kwargs):
         """
         sigma = noiseModel(V,TR,nT,differentialFlag,...) calculates the
         standard deviation of fMRI noise relative to signal after differential analysis of
@@ -279,14 +279,17 @@ class simulation:
             k = k * F
             sigma = np.sqrt((4/(k**2*V**2*nT)) + ((2*l**2)/(nT/2)**2)*s)
 
-        physNoiseFilter = norm.pdf(np.sqrt(self.x1**2 + self.x2**2 + self.x3**2), 0, 
-                        physNoiseSpatialWidth / (2 * np.sqrt(2 * np.log(2))))
-        FphysNoiseFilterNotNormalized = fftn(physNoiseFilter) * self.dx
-        FphysNoiseFilter = FphysNoiseFilterNotNormalized / np.sqrt(meanpower(FphysNoiseFilterNotNormalized))   
-        Fnoise = fftn(np.random.randn(*self.x1.shape)) * self.dx
-        physNoise = l * ifftn(Fnoise * FphysNoiseFilter) * self.dk
+        if physiologicalNoise_3D:
+            physNoiseFilter = norm.pdf(np.sqrt(self.x1**2 + self.x2**2 + self.x3**2), 0, 
+                            physNoiseSpatialWidth / (2 * np.sqrt(2 * np.log(2))))
+            FphysNoiseFilterNotNormalized = fftn(physNoiseFilter) * self.dx
+            FphysNoiseFilter = FphysNoiseFilterNotNormalized / np.sqrt(meanpower(FphysNoiseFilterNotNormalized))   
+            Fnoise = fftn(np.random.randn(*self.x1.shape)) * self.dx
+            physNoise = l * ifftn(Fnoise * FphysNoiseFilter) * self.dk
 
-        return sigma, np.real(physNoise)
+            return sigma, np.real(physNoise)
+        else:
+            return sigma
 
 def meanpower(s):
     """

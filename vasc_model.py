@@ -33,7 +33,7 @@ class vascModel:
         self.fwhm = fwhm
 
         if layers!=10:
-            self.p2t = self.__calculate_p2t__(6.3, layers, 10)
+            self.p2t = __calculate_p2t__(6.3, layers, 10)
         else:
             self.p2t = 6.3
 
@@ -44,22 +44,6 @@ class vascModel:
         self.tranformationMatrix = np.dot(self.p2t_matrix,self.PSF_3D_matrix)
         
         self.outputMatrix = np.einsum('ij,jkl->ikl', self.p2t_matrix, orig_response)
-
-    def __calculate_p2t__(self, p2t_model, n, n_model):
-        
-        """
-        Calculate the value of p2t and round to the nearest two decimals:
-    
-        Parameters:
-        p2t_model : float : Original p2t value
-        n : float : New layer value
-        n_model : float : Original layer value
-    
-        Returns:
-        float : The calculated value of p2t
-        """
-        return np.round((n / n_model) * p2t_model + (n_model - n) / (2 * n_model),2)
-    
 
     def __calculate_3DPSF_matrix__(self,matrix, num):
         
@@ -81,7 +65,7 @@ class vascModel:
 
         return np.dot(matrix,top_triangle)
 
-    def __calculate3DPSF_gaussian__(self,matrix, fwhm):
+    def __calculate3DPSF_gaussian__(self,matrix, fwhm, diagonalOne = False):
         
         matrix_size = matrix.shape[0]
         fwhm_values = np.linspace(fwhm[0], fwhm[1], matrix_size)  
@@ -91,11 +75,47 @@ class vascModel:
         for i, sigma in enumerate(sigma_values):
             x = np.arange(matrix_size)
             gaussian = norm.pdf(x, loc=i, scale=sigma)  
-            transformation_matrix[i, :] = gaussian
-
-        for col in range(transformation_matrix.shape[1]):
-            max_val = np.max(transformation_matrix[:, col])
-            if max_val > 0: 
-                transformation_matrix[:, col] /= max_val
+            #transformation_matrix[i, :] = gaussian
+            transformation_matrix[i, :] = gaussian/gaussian.sum()
+        
+        if diagonalOne:
+            for col in range(transformation_matrix.shape[1]):
+                max_val = np.max(transformation_matrix[:, col])
+                if max_val > 0: 
+                    transformation_matrix[:, col] /= max_val
 
         return transformation_matrix
+
+def __calculate_p2t__(p2t_model, n, n_model):
+        
+    """
+    Calculate the value of p2t and round to the nearest two decimals:
+    
+    Parameters:
+    p2t_model : float : Original p2t value
+    n : float : New layer value
+    n_model : float : Original layer value
+    
+    Returns:
+    float : The calculated value of p2t
+    """
+    return np.round((n / n_model) * p2t_model + (n_model - n) / (2 * n_model),2)
+
+
+def deconvolve(orig_response):
+
+    layers = orig_response.shape[2]
+
+    if layers!=10:
+        p2t = __calculate_p2t__(6.3, layers, 10)
+    else:
+        p2t = 6.3
+
+    matrix = np.eye(layers)
+    lower_triangle = np.tril(np.ones((layers, layers)), k=-1)
+    p2t_matrix = matrix + (1/p2t)*lower_triangle
+
+    inv_transformation_matrix = np.linalg.pinv(p2t_matrix)
+    deconvolved_response = np.einsum('ij,jkl->ikl', inv_transformation_matrix, np.transpose(orig_response, (2,1,0))).transpose(2,1,0)    
+    
+    return deconvolved_response
