@@ -56,6 +56,8 @@ sorted_folders = sorted(folders_layers, key=lambda x: next(i for i, suffix in na
 X_new  = np.empty((trials*2, voxels, layers,iterations, rval, CNR_values))
 
 accuracy_new  = np.empty((layers, iterations, rval, CNR_values))
+univarResponse_old  = np.empty((layers, iterations, rval, CNR_values))
+univarResponse_new  = np.empty((layers, iterations, rval, CNR_values))
 
 for index, folder in enumerate(sorted_folders):
     for i,r in enumerate(rho_values):
@@ -73,8 +75,11 @@ for index, folder in enumerate(sorted_folders):
                 vox = sim.VoxelResponses(it,r,r, numTrials_per_class=trials, betaRange=betaRange, layers=layers)                       
                 accuracy_new[:,it,i,ib] = vox.runSVM_classifier_acrossLayers(X_new[:,:,:,it,i,ib], y)
     
+                univarResponse_old[:,it,i,ib] = np.mean(X_loaded, (0,1))
+                univarResponse_new[:,it,i,ib] = np.mean(X_new[:,:,:,it,i, ib],(0,1))
+
     plotResults.plotViolin(accuracy_new, rho_values, CNR_change, f'Deconvolution_{name_dict2[index]}')
-   
+    plotResults.plotUnivar(univarResponse_old, univarResponse_new, rho_values, CNR_change, name_dict2[index], f'DeconvolutionUnivar_{name_dict2[index]}')
 
 
 

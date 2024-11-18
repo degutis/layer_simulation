@@ -50,7 +50,7 @@ class VoxelResponses:
 #        activity_row_class1, boldPattern_class1  = self.__generateLaminarColumnarPattern__(self.seed, self.rho_c1)
 #        activity_row_class2, boldPattern_class2  = self.__generateLaminarColumnarPattern__(self.seed+13086, self.rho_c2)
 
-#        activity_matrix_permuted, y_permuted = self.__createTrialMatrix__(activity_row_class1, activity_row_class2)
+#        activity_matrix_p0.4,ermuted, y_permuted = self.__createTrialMatrix__(activity_row_class1, activity_row_class2)
 
 #        return activity_matrix_permuted, y_permuted, boldPattern_class1, boldPattern_class2
 
@@ -65,12 +65,12 @@ class VoxelResponses:
 
     def diffPatternsAcrossColumn_oneDecodable(self, layer_of_interest):
 
-        activity_row_class1, boldPattern_class1  = self.__generateLaminarPatternSingleLayer__(self.seed, self.rho_c1, layer_of_interest)
-        activity_row_class2, boldPattern_class2  = self.__generateLaminarPatternSingleLayer__(self.seed+13086, self.rho_c2, layer_of_interest)
+        self.activity_row_class1, self.boldPattern_class1  = self.__generateLaminarPatternSingleLayer__(self.seed, self.rho_c1, layer_of_interest)
+        self.activity_row_class2, self.boldPattern_class2  = self.__generateLaminarPatternSingleLayer__(self.seed+13086, self.rho_c2, layer_of_interest)
 
-        activity_matrix_permuted, y_permuted = self.__createTrialMatrix__(activity_row_class1, activity_row_class2)
+        activity_matrix_permuted, y_permuted = self.__createTrialMatrix__(self.activity_row_class1, self.activity_row_class2)
 
-        return activity_matrix_permuted, y_permuted, boldPattern_class1, boldPattern_class2
+        return activity_matrix_permuted, y_permuted, self.boldPattern_class1, self.boldPattern_class2
 
 
     def __generateLaminarPatternsDifferent__(self, seed, rho):
@@ -82,7 +82,7 @@ class VoxelResponses:
         mriPattern = np.empty((self.L, self.L, self.layers, self.numTrials_per_class))
 
         padded_matrix_zeros = np.zeros((self.N, self.N, self.N_depth_mriSampling))
-        gaussian_noise_matrix = np.random.normal(loc=1, scale=0.1, size=(self.N, self.N, self.N_depth_mriSampling))
+        #gaussian_noise_matrix = np.random.normal(loc=1, scale=0.1, size=(self.N, self.N, self.N_depth_mriSampling))
 
 
         seed_list = [seed, seed+1, seed+2, seed+3] # three separate 
@@ -99,11 +99,10 @@ class VoxelResponses:
         
         drainedSignal = vm.vascModel(boldPattern.transpose((2,1,0)), layers=self.N_depth, fwhm=self.fwhmRange)
         padded_matrix_zeros[:, :, self.N_depth:self.N_depth*2] = drainedSignal.outputMatrix.transpose(1, 2, 0)
-        padded_matrix_zeros += gaussian_noise_matrix
+        #padded_matrix_zeros += gaussian_noise_matrix
 
         mriPattern_extended = sim.mri(self.w, padded_matrix_zeros)
         mriPattern = mriPattern_extended[:,:,self.layers:self.layers*2] 
-
 
         return mriPattern.reshape(mriPattern.shape[0]*mriPattern.shape[1],mriPattern.shape[2]), drainedSignal.outputMatrix.transpose(1,2,0)        
 
@@ -140,7 +139,7 @@ class VoxelResponses:
         columnPattern = np.empty((self.N, self.N, self.N_depth, self.numTrials_per_class))
         drainedSignal_output = np.empty((self.N, self.N, self.N_depth, self.numTrials_per_class))
         padded_matrix_zeros = np.zeros((self.N, self.N, self.N_depth_mriSampling, self.numTrials_per_class))
-        gaussian_noise_matrix = np.random.normal(loc=1, scale=0.1, size=(self.N, self.N, self.N_depth_mriSampling, self.numTrials_per_class))
+        #gaussian_noise_matrix = np.random.normal(loc=1, scale=0.1, size=(self.N, self.N, self.N_depth_mriSampling, self.numTrials_per_class))
         mriPattern_extended = np.empty((self.L, self.L, self.layers_mriSampling, self.numTrials_per_class))
         mriPattern = np.empty((self.L, self.L, self.layers, self.numTrials_per_class))
 
@@ -158,7 +157,7 @@ class VoxelResponses:
             drainedSignal_output[:, :, :, tr] = drainedSignal.outputMatrix.transpose(1, 2, 0)
             
             padded_matrix_zeros[:, :, self.N_depth:self.N_depth*2, tr] = drainedSignal_output[:, :, :, tr]
-            padded_matrix_zeros[:,:,:,tr] += gaussian_noise_matrix[:,:,:,tr]
+            #padded_matrix_zeros[:,:,:,tr] += gaussian_noise_matrix[:,:,:,tr]
             mriPattern_extended[:, :, :, tr] = sim.mri(self.w, padded_matrix_zeros[:,:,:,tr])
             mriPattern[:, :, :, tr] = mriPattern_extended[:, :, self.layers:self.layers*2, tr]
         
@@ -192,7 +191,13 @@ class VoxelResponses:
     def __generateNoiseMatrix__(self, mriPattern, physiologicalNoise_3D = False, sliceThickness = 1, TR = 2, nT = 1, differentialFlag = False, noiseType="7T"):    
         
         # nt - number acquisitions - otherwise have autocorrelation. 
+        if mriPattern.shape[2] == 3:
+            depthScaling = np.array([2.7, 3.6, 3.5])
+        elif mriPattern.shape[2] == 4:
+            depthScaling = np.array([2.7, (2.7+3.6)/2, 3.6, 3.5])
 
+        noiseMatrix = np.zeros(mriPattern.shape)
+        scaledDepth = depthScaling/np.mean(depthScaling)
         V = self.w**2*sliceThickness
         rg = np.random.RandomState(self.seed+56)
 
@@ -202,15 +207,19 @@ class VoxelResponses:
             voxel = sim.mri(self.w, physNoise)
             voxel.resize(voxel.shape[0]*voxel.shape[1],voxel.shape[2])
             self.physicalNoise = np.tile(voxel, (self.numTrials_per_class*2, 1, 1))
-            return mriPattern + self.sigma * rg.randn(*mriPattern.shape) + self.physicalNoise[:,:,self.layers:self.layers*2]
+
+            for layer in range(mriPattern.shape[2]):
+                noiseMatrix[:,:,layer]= (scaledDepth[layer] * self.sigma) * rg.randn(noiseMatrix.shape[0],noiseMatrix.shape[1])
+
+            return mriPattern + noiseMatrix + self.physicalNoise[:,:,self.layers:self.layers*2]
         
         else:
             sim = cf.simulation(self.N, self.L, self.N_depth_mriSampling, self.layers_mriSampling, self.seed)
             self.sigma = sim.noiseModel(V,TR,nT, physiologicalNoise_3D = False, differentialFlag = False, noiseType=noiseType)
-            return mriPattern + self.sigma * rg.randn(*mriPattern.shape)
+            for layer in range(noiseMatrix.shape[2]):
+                noiseMatrix[:,:,layer] = (scaledDepth[layer] * self.sigma) * rg.randn(noiseMatrix.shape[0],noiseMatrix.shape[1])
+            return mriPattern + noiseMatrix
             
-   
-
     def runSVM_classifier_acrossLayers(self, layer_responses, y_permuted, n_splits=5):
         """
         Runs an SVM classifier for each layer using cross-validation and a standard scaler

@@ -9,7 +9,7 @@ import pickle as pkl
 cf.createFolders()
 
 # Define some parameters
-iterations=30
+iterations=10
 layers = 3
 depths = layers*3
 

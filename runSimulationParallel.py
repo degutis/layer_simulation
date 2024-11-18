@@ -11,9 +11,9 @@ cf.createFolders()
 # Define some parameters
 layer_index = int(sys.argv[1])  # This defines the layers to decode (e.g., [9, 10, 11], etc.)
 iterations=15
-layers = 4
-rho_values = [0.4, 0.5, 0.6]
-CNR_change = [1, 2, 3]
+layers = 3
+rho_values = [0.4] 
+CNR_change = [1]
 rval = len(rho_values)
 CNR_values = len(CNR_change)
 
@@ -22,19 +22,35 @@ numTrials_per_class = 50
 
 accuracy = np.empty((layers,iterations, rval, CNR_values))
 
-layer_dict = {
-    0: [0, 1, 2],
-    1: [3, 4, 5],
-    2: [6, 7, 8],
-    3: [9, 10, 11],
-}
+if layers==3:
+    layer_dict = {
+        0: [0,1,2],
+        1: [3,4,5],
+        2: [6,7,8],
+    }
 
-name_dict = {
-    0: "Deep",
-    1: "Middle Deep",
-    2: "Middle Superficial",
-    3: "Superficial",
-}
+    name_dict = {
+        0: "Deep",
+        1: "Middle",
+        2: "Superficial",
+    }
+
+elif layers==4:
+    
+    layer_dict = {
+        0: [0, 1, 2],
+        1: [3, 4, 5],
+        2: [6, 7, 8],
+        3: [9, 10, 11],
+    }
+
+    name_dict = {
+        0: "Deep",
+        1: "Middle Deep",
+        2: "Middle Superficial",
+        3: "Superficial",
+    }
+
 
 pathName = f'../derivatives/pipeline_files/Layers{layers}_Beta{beta}_Trials{numTrials_per_class}_LayerOfInt{name_dict[layer_index]}'
 Path(pathName).mkdir(parents=True, exist_ok=True)

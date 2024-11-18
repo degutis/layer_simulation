@@ -2,6 +2,8 @@ import seaborn as sns
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from scipy.stats import zscore
+
 
 def plotViolin(accuracy, rho_values, CNR_change, title):
 
@@ -137,3 +139,54 @@ def plotTstat(accuracy, rho_values, CNR_change, percent_change, layer_of_interes
     layer_names = [f'{name} - {layer_of_interest}' for name in origName]
     df = setup_df(accuracy, layer_names, rho_values, CNR_change, percent_change)
     plotGraph(df, title, "T-value (One-sample t-test)", layer_names, layer_of_interest)
+
+def plotUnivar(response_old, response_new, rho_values, CNR_change, layer_of_interest, title):
+    
+    layer_names = ["Deep", "Middle", "Superficial"] if response_old.shape[0] == 3 else ["Deep", "Middle Deep", "Middle Superficial", "Superficial"]
+    
+    df_old = setup_df_noPercent(response_old, layer_names, rho_values, CNR_change)
+    df_new = setup_df_noPercent(response_new, layer_names, rho_values, CNR_change)
+    df_old['Response Type'] = 'Old'
+    df_new['Response Type'] = 'New'
+
+    df_combined = pd.concat([df_old, df_new])
+    df_combined['Accuracy_zscore'] = df_combined.groupby(['Rho', 'CNR_change',"Response Type"])['Accuracy'].transform(lambda x: zscore(x, ddof=1))
+
+    print(np.std(df_combined[(df_combined['Layer'] == 'Superficial') & (df_combined['Response Type'] == 'Old')]['Accuracy_zscore']))
+    print(np.std(df_combined[(df_combined['Layer'] == 'Superficial') & (df_combined['Response Type'] == 'New')]['Accuracy_zscore']))
+
+    plotLayersUni(df_combined, title, "Response Amplitude (a.u.)", layer_of_interest)
+
+def plotLayersUni(df, title, y_label, layer_of_interest=None):
+    g = sns.FacetGrid(df, row='Rho', col='CNR_change', margin_titles=True, height=4, aspect=1)
+    g.map_dataframe(sns.lineplot, x='Layer', y='Accuracy_zscore', hue='Response Type', 
+        palette="Set1", errorbar=('se'), markers=True)
+    g.set_axis_labels("Layer", y_label)
+    g.set_titles(row_template="Rho = {row_name}", col_template="CNR_change = {col_name}")
+    g.map(plt.axhline, y=0, linestyle='--', color='gray')
+    g.add_legend(title="Response Type", bbox_to_anchor=(1, 0.5), loc='center left')
+    g.fig.suptitle(f'Separable patterns present in the {layer_of_interest} Layer')
+    plt.tight_layout()
+    g.savefig(f"../derivatives/results/{title}.png", format="png")
+
+def setup_df_noPercent(accuracy, layer_names, rho_values, CNR_change):
+    accuracy_flat = accuracy.flatten()
+    numLayers = accuracy.shape[0]
+    numIterations = accuracy.shape[-3]
+    numParams = accuracy.shape[-2]
+    numBetas = accuracy.shape[-1]
+
+    layers = np.repeat(layer_names, numParams * numBetas * numIterations)
+    rhos = np.tile(np.repeat(rho_values, numBetas), numLayers * numIterations)
+    betas = np.tile(CNR_change, numLayers * numParams * numIterations)
+    iteration_col = np.tile(np.repeat(np.arange(1, numIterations + 1), numParams * numBetas), numLayers)
+
+    df_data = {
+        'Layer': layers,
+        'Rho': rhos,
+        'CNR_change': betas,
+        'Iteration': iteration_col,
+        'Accuracy': accuracy_flat
+    }
+
+    return pd.DataFrame(df_data)

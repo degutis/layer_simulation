@@ -74,13 +74,13 @@ class simulation:
             np.fft.fftn(np.fft.ifftshift(y), s=(self.N, self.N, self.N_depth))
         )
    
-    def columnPattern(self,rho,deltaRelative,gwnoise):
+    def columnPattern(self,rho,deltaRelative,gwnoise,baselineActivity=10):
         """
         Simulates the differential neuronal response of a pattern of cortical 
         columns by filtering of spatial Gaussian white noise gwnoise using a 
         spatial band-pass filter parameterized by main spatial frequency rho and
         relative irregularity delta. Returns the simulated pattern and a map of
-        preferred orientaion (if the map is interpreted as representing orientation
+        preferred orientation (if the map is interpreted as representing orientation
         responses).
         """
         fwhmfactor = 2*np.sqrt(2*np.log(2))
@@ -95,7 +95,7 @@ class simulation:
         FORIENT = FORIENTNotNormalized/C
         noiseF = self.ft2(gwnoise)
         gamma = self.ift2(FORIENT*noiseF)
-        neuronal = np.real(gamma)
+        neuronal = np.real(gamma)+baselineActivity
         preferredOrientation = np.angle(gamma)/2
         return neuronal, preferredOrientation
     
@@ -103,7 +103,7 @@ class simulation:
         """
         Simulates spatial BOLD response to neuronal response pattern y using a 
         BOLD PSF with full-width at half-maximum fwhm, response amplitude beta.
-        Returns rhe resulting BOLD response pattern, the point-spread function and
+        Returns the resulting BOLD response pattern, the point-spread function and
         modulation-transfer function.
         """
         
@@ -151,39 +151,7 @@ class simulation:
         else:
             my = None
         return my
-    
-    def upsample(self,y):
-        """
-        Spatial frequency space zero-fill interpolation (=Fourier interpolation).
-        """
-        Fy = np.fft.fft2(y)
-        nx, ny = Fy.shape # size of original matrix
-        nxAdd = self.N - nx # number of zeros to add
-        nyAdd = self.N - ny
-        # quadrants of the FFT, starting in the upper left
-        q1 = Fy[:int(nx/2),:int(ny/2)]
-        q2 = Fy[:int(nx/2),int(ny/2):]
-        q3 = Fy[int(nx/2):,int(ny/2):]
-        q4 = Fy[int(nx/2):,:int(ny/2)]
-        zeroPaddRows = np.zeros((nxAdd,int(ny/2)))
-        zeroPaddColumns = np.zeros((nxAdd+nx,nyAdd))
-        zeroPaddFy = np.hstack(
-            (np.vstack((q1,zeroPaddRows,q4)),
-             zeroPaddColumns,
-             np.vstack((q2,zeroPaddRows,q3))))
-        upPattern = np.real(np.fft.ifft2(zeroPaddFy)) * self.N**2/(nx*ny)
-        return upPattern
-    
-    def patternCorrelation(self,orig,mri):
-        """
-        Calculates pattern correlation between original pattern orig and zero-fill
-        interpolated version of pattern mri. 
-        """
-        mriUp = self.upsample(mri)
-        c = np.corrcoef(orig.flatten(),mriUp.flatten())
-        r = c[0,1]
-        return r
-        
+           
     def plotPattern(self,y,cmap='gray',title=None, ax=None):
         """
         Visualizes a simulation pattern.
