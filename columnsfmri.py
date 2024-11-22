@@ -79,9 +79,7 @@ class simulation:
         Simulates the differential neuronal response of a pattern of cortical 
         columns by filtering of spatial Gaussian white noise gwnoise using a 
         spatial band-pass filter parameterized by main spatial frequency rho and
-        relative irregularity delta. Returns the simulated pattern and a map of
-        preferred orientation (if the map is interpreted as representing orientation
-        responses).
+        relative irregularity delta. Returns the simulated pattern
         """
         fwhmfactor = 2*np.sqrt(2*np.log(2))
         r = np.sqrt(self.k1**2+self.k2**2)
@@ -95,9 +93,8 @@ class simulation:
         FORIENT = FORIENTNotNormalized/C
         noiseF = self.ft2(gwnoise)
         gamma = self.ift2(FORIENT*noiseF)
-        neuronal = np.real(gamma)+baselineActivity
-        preferredOrientation = np.angle(gamma)/2
-        return neuronal, preferredOrientation
+        
+        return np.real(gamma)+baselineActivity
     
     def bold(self,fwhm,beta,y):
         """

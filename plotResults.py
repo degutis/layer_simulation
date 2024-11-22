@@ -152,14 +152,11 @@ def plotUnivar(response_old, response_new, rho_values, CNR_change, layer_of_inte
     df_combined = pd.concat([df_old, df_new])
     df_combined['Accuracy_zscore'] = df_combined.groupby(['Rho', 'CNR_change',"Response Type"])['Accuracy'].transform(lambda x: zscore(x, ddof=1))
 
-    print(np.std(df_combined[(df_combined['Layer'] == 'Superficial') & (df_combined['Response Type'] == 'Old')]['Accuracy_zscore']))
-    print(np.std(df_combined[(df_combined['Layer'] == 'Superficial') & (df_combined['Response Type'] == 'New')]['Accuracy_zscore']))
-
     plotLayersUni(df_combined, title, "Response Amplitude (a.u.)", layer_of_interest)
 
 def plotLayersUni(df, title, y_label, layer_of_interest=None):
     g = sns.FacetGrid(df, row='Rho', col='CNR_change', margin_titles=True, height=4, aspect=1)
-    g.map_dataframe(sns.lineplot, x='Layer', y='Accuracy_zscore', hue='Response Type', 
+    g.map_dataframe(sns.lineplot, x='Layer', y='Accuracy', hue='Response Type', 
         palette="Set1", errorbar=('se'), markers=True)
     g.set_axis_labels("Layer", y_label)
     g.set_titles(row_template="Rho = {row_name}", col_template="CNR_change = {col_name}")

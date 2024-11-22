@@ -26,7 +26,7 @@ class vascModel:
         Calculates the value of p2t based on the base value, number of layers, and base number of layers.
     """
 
-    def __init__(self, orig_response, layers, fwhm):
+    def __init__(self, orig_response, layers, fwhm, propChange = 0):
 
         self.layers = layers
         self.orig_response = orig_response
@@ -36,6 +36,8 @@ class vascModel:
             self.p2t = __calculate_p2t__(6.3, layers, 10)
         else:
             self.p2t = 6.3
+
+        self.p2t += propChange*self.p2t
 
         matrix = np.eye(self.layers)
         lower_triangle = np.tril(np.ones((self.layers, self.layers)), k=-1)

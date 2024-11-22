@@ -10,9 +10,9 @@ layers=3
 beta=0.035
 trials = 50
 iterations=15
-
-rho_values = [0.4, 0.5, 0.6]
-CNR_change = [1, 2, 3]
+layers = 3
+rho_values = [0.4] 
+CNR_change = [1]
 rval = len(rho_values)
 CNR_values = len(CNR_change)
 voxels = 256
@@ -66,9 +66,8 @@ for index, folder in enumerate(sorted_folders):
                 pathName = f'{folder_path}/{sorted_folders[index]}/Iteration{it}_Rho{r}_CNR{b}.pickle'
 
                 with open(pathName, 'rb') as f:
-                    X_loaded, y = pkl.load(f)
+                    X_loaded, y, _,_ = pkl.load(f)
 
-                #X[:,:,:,it,i, ib,index] = X_loaded
                 X_new[:,:,:,it,i, ib] = vm.deconvolve(X_loaded) 
                 betaRange = [beta, beta*CNR_change[ib]]
                 

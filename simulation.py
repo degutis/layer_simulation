@@ -3,6 +3,10 @@ import numpy as np
 import columnsfmri as cf
 import vasc_model as vm
 
+import pickle as pkl
+import os
+from pathlib import Path
+
 from sklearn.model_selection import cross_val_score, StratifiedKFold
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
@@ -65,12 +69,12 @@ class VoxelResponses:
 
     def diffPatternsAcrossColumn_oneDecodable(self, layer_of_interest):
 
-        self.activity_row_class1, self.boldPattern_class1  = self.__generateLaminarPatternSingleLayer__(self.seed, self.rho_c1, layer_of_interest)
-        self.activity_row_class2, self.boldPattern_class2  = self.__generateLaminarPatternSingleLayer__(self.seed+13086, self.rho_c2, layer_of_interest)
+        self.activity_row_class1, self.boldPattern_class1, self.boldPatternOrig_class1  = self.__generateLaminarPatternSingleLayer__(self.seed, self.rho_c1, layer_of_interest)
+        self.activity_row_class2, self.boldPattern_class2, self.boldPatternOrig_class2  = self.__generateLaminarPatternSingleLayer__(self.seed+13086, self.rho_c2, layer_of_interest)
 
         activity_matrix_permuted, y_permuted = self.__createTrialMatrix__(self.activity_row_class1, self.activity_row_class2)
 
-        return activity_matrix_permuted, y_permuted, self.boldPattern_class1, self.boldPattern_class2
+        return activity_matrix_permuted, y_permuted, self.boldPattern_class1, self.boldPattern_class2, self.boldPatternOrig_class1, self.boldPatternOrig_class2
 
 
     def __generateLaminarPatternsDifferent__(self, seed, rho):
@@ -94,7 +98,7 @@ class VoxelResponses:
         for la in range(self.N_depth):
             sim = cf.simulation(self.N, self.L, self.N_depth_mriSampling, self.layers_mriSampling, seed_list[la])
             gwn = sim.gwnoise()
-            columnPattern[:,:, la], _ = sim.columnPattern(rho[la],self.deltaRelative,gwn)
+            columnPattern[:,:, la] = sim.columnPattern(rho[la],self.deltaRelative,gwn)
             boldPattern[:, :, la], _, _ = sim.bold(self.fwhm_layers[la], self.beta_layers[la],columnPattern[:,:,la])
         
         drainedSignal = vm.vascModel(boldPattern.transpose((2,1,0)), layers=self.N_depth, fwhm=self.fwhmRange)
@@ -113,7 +117,7 @@ class VoxelResponses:
 #        gwn = sim.gwnoise()
 
 #        if type(rho) == int:
-#            columnPattern, _ = sim.columnPattern(rho,self.deltaRelative,gwn)
+#            columnPattern = sim.columnPattern(rho,self.deltaRelative,gwn)
 #            boldPattern = np.empty((self.N, self.N, self.N_depth))
 #            mriPattern = np.empty((self.L, self.L, self.layers))    
 #            for l in range(self.N_depth):
@@ -121,7 +125,7 @@ class VoxelResponses:
 
 #        else:
 #            for l in range(self.N_depth):
-#                columnPattern, _ = sim.columnPattern(rho[l],self.deltaRelative,gwn)
+#                columnPattern = sim.columnPattern(rho[l],self.deltaRelative,gwn)
 #                boldPattern = np.empty((self.N, self.N, self.N_depth))
 #                mriPattern = np.empty((self.L, self.L, self.layers))    
 #                boldPattern[:, :, l], _, _ = sim.bold(self.fwhm_layers[l], self.beta_layers[l],columnPattern)
@@ -143,16 +147,16 @@ class VoxelResponses:
         mriPattern_extended = np.empty((self.L, self.L, self.layers_mriSampling, self.numTrials_per_class))
         mriPattern = np.empty((self.L, self.L, self.layers, self.numTrials_per_class))
 
-        layer_range = range(self.N_depth)
-        
+        layer_range = range(self.N_depth)       
+
         for tr in range(self.numTrials_per_class):
             input_seeds = [(tr*self.N_depth + la + (seed+1)) if la not in layer_of_interest else seed for la in layer_range]
             for la in layer_range:
                 sim = cf.simulation(self.N, self.L, self.N_depth_mriSampling, self.layers_mriSampling, input_seeds[la])
                 gwn = sim.gwnoise()          
-                columnPattern[:,:, la, tr], _ = sim.columnPattern(rho, self.deltaRelative, gwn)
+                columnPattern[:,:, la, tr] = sim.columnPattern(rho, self.deltaRelative, gwn)
                 boldPattern[:, :, la, tr], _, _ = sim.bold(self.fwhm_layers[la], self.beta_layers[la], columnPattern[:,:, la, tr])
-                    
+
             drainedSignal = vm.vascModel(boldPattern[:, :, :, tr].transpose((2, 1, 0)), layers=self.N_depth, fwhm=self.fwhmRange)
             drainedSignal_output[:, :, :, tr] = drainedSignal.outputMatrix.transpose(1, 2, 0)
             
@@ -162,8 +166,9 @@ class VoxelResponses:
             mriPattern[:, :, :, tr] = mriPattern_extended[:, :, self.layers:self.layers*2, tr]
         
         mriPattern_reshaped = mriPattern.reshape(mriPattern.shape[0] * mriPattern.shape[1], mriPattern.shape[2], mriPattern.shape[3])
-        
-        return mriPattern_reshaped.transpose(2,0,1), drainedSignal_output       
+
+
+        return mriPattern_reshaped.transpose(2,0,1), drainedSignal_output, boldPattern      
 
 
     def __createTrialMatrix__(self, activity_row_class1, activity_row_class2):
@@ -254,7 +259,39 @@ class VoxelResponses:
             scores[layer] = np.mean(cross_val_score(pipeline, X, y, cv=cv))
 
         return scores
+
+    def oneDecodable_changeVascModel(self, boldPattern1, boldPattern2, propChange):
+
+        self.activity_row_class1, self.boldPattern_class1  = self.__changeVascModel__(self.seed, boldPattern1, propChange)
+        self.activity_row_class2, self.boldPattern_class2  = self.__changeVascModel__(self.seed+13086, boldPattern2, propChange)
+
+        activity_matrix_permuted, y_permuted = self.__createTrialMatrix__(self.activity_row_class1, self.activity_row_class2)
+
+        return activity_matrix_permuted, y_permuted, self.boldPattern_class1, self.boldPattern_class2
+
     
+    def __changeVascModel__(self, seed, boldPattern, propChange):
+            
+        drainedSignal_output = np.empty((self.N, self.N, self.N_depth, self.numTrials_per_class))
+        padded_matrix_zeros = np.zeros((self.N, self.N, self.N_depth_mriSampling, self.numTrials_per_class))
+        mriPattern_extended = np.empty((self.L, self.L, self.layers_mriSampling, self.numTrials_per_class))
+        mriPattern = np.empty((self.L, self.L, self.layers, self.numTrials_per_class))
+        
+        for tr in range(self.numTrials_per_class):
+
+            sim = cf.simulation(self.N, self.L, self.N_depth_mriSampling, self.layers_mriSampling, seed+tr)
+
+            drainedSignal = vm.vascModel(boldPattern[:, :, :, tr].transpose((2, 1, 0)), layers=self.N_depth, fwhm=self.fwhmRange, propChange=propChange)
+            drainedSignal_output[:, :, :, tr] = drainedSignal.outputMatrix.transpose(1, 2, 0)
+                
+            padded_matrix_zeros[:, :, self.N_depth:self.N_depth*2, tr] = drainedSignal_output[:, :, :, tr]
+            mriPattern_extended[:, :, :, tr] = sim.mri(self.w, padded_matrix_zeros[:,:,:,tr])
+            mriPattern[:, :, :, tr] = mriPattern_extended[:, :, self.layers:self.layers*2, tr]
+            
+        mriPattern_reshaped = mriPattern.reshape(mriPattern.shape[0] * mriPattern.shape[1], mriPattern.shape[2], mriPattern.shape[3])
+
+        return mriPattern_reshaped.transpose(2,0,1), drainedSignal_output       
+
 
 def missegmentationVox(X, percent, seed):
 
