@@ -10,7 +10,7 @@ cf.createFolders()
 
 # Define some parameters
 layer_index = int(sys.argv[1])  # This defines the layers to decode (e.g., [9, 10, 11], etc.)
-iterations=5
+iterations=20
 layers = 3
 rho_values = [0.4] 
 CNR_change = [1]
@@ -59,12 +59,18 @@ for it in range(iterations):
     for i,r in enumerate(rho_values):
         for ib,b in enumerate(CNR_change):
             betaRange = [beta, beta*CNR_change[ib]]
-            vox = sim.VoxelResponses(it,r,r, numTrials_per_class=numTrials_per_class, betaRange=betaRange, layers=layers, N_depth=layers*3)                       
-            X,y,_,_,boldPattern1, boldPattern2 = vox.diffPatternsAcrossColumn_oneDecodable(layer_dict[layer_index])
-
             nameFile = f'{pathName}/Iteration{it}_Rho{r}_CNR{b}.pickle'
-            with open(nameFile, 'wb') as handle:
-                pkl.dump((X, y, boldPattern1, boldPattern2), handle)
+
+            try:
+                with open(nameFile, 'rb') as handle:
+                    X, y = pkl.load(handle)
+
+            except:
+                vox = sim.VoxelResponses(it,r,r, numTrials_per_class=numTrials_per_class, betaRange=betaRange, layers=layers, N_depth=layers*3)                       
+                X,y,_,_,boldPattern1, boldPattern2 = vox.diffPatternsAcrossColumn_oneDecodable(layer_dict[layer_index])
+
+                with open(nameFile, 'wb') as handle:
+                    pkl.dump((X, y, boldPattern1, boldPattern2), handle)
 
             accuracy[:,it,i, ib] = vox.runSVM_classifier_acrossLayers(X, y)
 

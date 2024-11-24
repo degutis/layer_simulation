@@ -76,6 +76,6 @@ for index, folder in enumerate(sorted_folders):
 
     plotResults.plotChangeMisalignment(accuracy_diff, rho_values, CNR_change, propChange, name_dict2[index], f'VascModelChange{name_dict2[index]}')
     
-    #accuracy_layerSubtraction = accuracy_new - accuracy_new[index, :,:,:]
-    #t_stat, _ = stats.ttest_1samp(accuracy_layerSubtraction, 0, axis=1)
-    #plotResults.plotTstat(t_stat, rho_values, CNR_change, percent_change, name_dict2[index], f'MisalignmentLayersChange{name_dict2[index]}')
+    accuracy_layerSubtraction = accuracy_new - accuracy_new[index, :,:,:]
+    t_stat, _ = stats.ttest_1samp(accuracy_layerSubtraction, 0, axis=1)
+    plotResults.plotTstat(t_stat, rho_values, CNR_change, propChange, name_dict2[index], f'VascModelChange_Ttest{name_dict2[index]}')

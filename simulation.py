@@ -196,11 +196,8 @@ class VoxelResponses:
     def __generateNoiseMatrix__(self, mriPattern, physiologicalNoise_3D = False, sliceThickness = 1, TR = 2, nT = 1, differentialFlag = False, noiseType="7T"):    
         
         # nt - number acquisitions - otherwise have autocorrelation. 
-        if mriPattern.shape[2] == 3:
-            depthScaling = np.array([2.7, 3.6, 3.5])
-        elif mriPattern.shape[2] == 4:
-            depthScaling = np.array([2.7, (2.7+3.6)/2, 3.6, 3.5])
-
+        depthScaling = self.__calculateDepthScaling__(mriPattern.shape[2])
+        
         noiseMatrix = np.zeros(mriPattern.shape)
         scaledDepth = depthScaling/np.mean(depthScaling)
         V = self.w**2*sliceThickness
@@ -224,7 +221,21 @@ class VoxelResponses:
             for layer in range(noiseMatrix.shape[2]):
                 noiseMatrix[:,:,layer] = (scaledDepth[layer] * self.sigma) * rg.randn(noiseMatrix.shape[0],noiseMatrix.shape[1])
             return mriPattern + noiseMatrix
-            
+    
+    def __calculateDepthScaling__(self,layers):
+        depthScaling = np.array([1, 1.5, 2.1, 2.7, 3, 3.2, 3.8, 3.3, 3.2, 3.5, 3.2, 5.2, 6]) # estimation based on Koopmans et al 2011 Figure 6
+        
+        pad_length = len(original_array)  # Pad with the same length as the original array
+        padded_array = np.pad(original_array, (pad_length, pad_length))
+        fft_result = np.fft.fft(padded_array)
+
+        truncated_fft = np.zeros_like(fft_result)
+        truncated_fft[:layers] = fft_result[:layers]
+
+        downsampled_array = np.real(np.fft.ifft(truncated_fft))
+        centered_downsampled = downsampled_array_real[pad_length:pad_length + len(original_array)]
+        return centered_downsampled[:layers]
+
     def runSVM_classifier_acrossLayers(self, layer_responses, y_permuted, n_splits=5):
         """
         Runs an SVM classifier for each layer using cross-validation and a standard scaler
