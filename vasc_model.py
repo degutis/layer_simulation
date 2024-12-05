@@ -104,7 +104,7 @@ def __calculate_p2t__(p2t_model, n, n_model):
     return np.round((n / n_model) * p2t_model + (n_model - n) / (2 * n_model),2)
 
 
-def deconvolve(orig_response):
+def deconvolve(orig_response, propChange=0):
 
     layers = orig_response.shape[2]
 
@@ -112,6 +112,9 @@ def deconvolve(orig_response):
         p2t = __calculate_p2t__(6.3, layers, 10)
     else:
         p2t = 6.3
+
+
+    p2t += propChange*p2t
 
     matrix = np.eye(layers)
     lower_triangle = np.tril(np.ones((layers, layers)), k=-1)

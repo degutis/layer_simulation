@@ -2,13 +2,15 @@ import simulation as sim
 import numpy as np
 import pickle as pkl
 import os
+import vasc_model as vm
 import plotResults
 from scipy import stats
+
 
 layers=3
 beta=0.035
 trials = 50
-iterations=5
+iterations=20
 
 rho_values = [0.4]
 CNR_change = [1]
@@ -68,7 +70,8 @@ for index, folder in enumerate(sorted_folders):
                     input_seed = [(it*iterations + ip)]
                     vox = sim.VoxelResponses(it,r,r, numTrials_per_class=trials, betaRange=betaRange, layers=layers)                       
                     X,y,_,_ = vox.oneDecodable_changeVascModel(boldPattern1, boldPattern2, prop)                  
-                    accuracy_new[:,it,i,ib,ip] = vox.runSVM_classifier_acrossLayers(X, y)
+                    X_deconvolved = vm.deconvolve(X) # added a deconvolution step
+                    accuracy_new[:,it,i,ib,ip] = vox.runSVM_classifier_acrossLayers(X_deconvolved, y)
 
     accuracy_old = np.load(f'../derivatives/results/Accuracy_LayerResponse{index}_rho{(rho_values)}_CNR{str(CNR_change)}.npy')
     accuracy_diff = accuracy_new - np.repeat(accuracy_old[..., np.newaxis], len(propChange), axis=4)

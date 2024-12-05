@@ -10,7 +10,7 @@ percent_change=[1,5,10,15,20,30,40]
 layers=3
 beta=0.035
 trials = 50
-iterations=15
+iterations=20
 
 rho_values = [0.4]
 CNR_change = [1]

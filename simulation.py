@@ -223,7 +223,7 @@ class VoxelResponses:
             return mriPattern + noiseMatrix
     
     def __calculateDepthScaling__(self,layers):
-        depthScaling = np.array([1, 1.5, 2.1, 2.7, 3, 3.2, 3.8, 3.3, 3.2, 3.5, 3.2, 5.2, 6]) # estimation based on Koopmans et al 2011 Figure 6
+        original_array = np.array([1, 1.5, 2.1, 2.7, 3, 3.2, 3.8, 3.3, 3.2, 3.5, 3.2, 5.2, 6]) # estimation based on Koopmans et al 2011 Figure 6
         
         pad_length = len(original_array)  # Pad with the same length as the original array
         padded_array = np.pad(original_array, (pad_length, pad_length))
@@ -233,7 +233,7 @@ class VoxelResponses:
         truncated_fft[:layers] = fft_result[:layers]
 
         downsampled_array = np.real(np.fft.ifft(truncated_fft))
-        centered_downsampled = downsampled_array_real[pad_length:pad_length + len(original_array)]
+        centered_downsampled = downsampled_array[pad_length:pad_length + len(original_array)]
         return centered_downsampled[:layers]
 
     def runSVM_classifier_acrossLayers(self, layer_responses, y_permuted, n_splits=5):

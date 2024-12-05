@@ -79,7 +79,3 @@ for index, folder in enumerate(sorted_folders):
 
     plotResults.plotViolin(accuracy_new, rho_values, CNR_change, f'Deconvolution_{name_dict2[index]}')
     plotResults.plotUnivar(univarResponse_old, univarResponse_new, rho_values, CNR_change, name_dict2[index], f'DeconvolutionUnivar_{name_dict2[index]}')
-
-
-
-
