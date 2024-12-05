@@ -9,7 +9,7 @@ import vasc_model as vm
 layers=3
 beta=0.035
 trials = 50
-iterations=15
+iterations=20
 layers = 3
 rho_values = [0.4] 
 CNR_change = [1]
