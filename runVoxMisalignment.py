@@ -78,12 +78,13 @@ for index, folder in enumerate(sorted_folders):
     
     accuracy_old = np.load(f'../derivatives/results/Accuracy_LayerResponse{index}_rho{(rho_values)}_CNR{str(CNR_change)}.npy')
     accuracy_diff = accuracy_new - np.repeat(accuracy_old[..., np.newaxis], len(percent_change), axis=4)
-    np.save(f'../derivatives/results/Difference_Accuracy_LayerResponse{index}_rho{(rho_values)}_CNR{str(CNR_change)}_MisPerc{percent_change}.npy', accuracy_diff)
-
-    plotResults.plotChangeMisalignment(accuracy_diff, rho_values, CNR_change, percent_change, name_dict2[index], f'MisalignmentChange{name_dict2[index]}')
-    
     accuracy_layerSubtraction = accuracy_new - accuracy_new[index, :,:,:]
     t_stat, _ = stats.ttest_1samp(accuracy_layerSubtraction, 0, axis=1)
+
+    np.save(f'../derivatives/results/Difference_Accuracy_LayerResponse{index}_rho{(rho_values)}_CNR{str(CNR_change)}_MisPerc{percent_change}.npy', accuracy_diff)
+    np.save(f'../derivatives/results/Difference_Accuracy_LayerResponse{index}_rho{(rho_values)}_CNR{str(CNR_change)}_MisPerc{percent_change}.npy', t_stat)  
+    
+    plotResults.plotChangeMisalignment(accuracy_diff, rho_values, CNR_change, percent_change, name_dict2[index], f'MisalignmentChange{name_dict2[index]}')
     plotResults.plotTstat(t_stat, rho_values, CNR_change, percent_change, name_dict2[index], f'MisalignmentLayersChange{name_dict2[index]}')
 
 

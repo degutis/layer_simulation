@@ -27,12 +27,14 @@ if layers==3:
         0: "LayerOfIntDeep",
         1: "LayerOfIntMiddle",
         2: "LayerOfIntSuperficial",
+        3: "LayerOfIntDeep and Superficial"
     }
 
     name_dict2 = {
         0: "Deep",
         1: "Middle",
-        2: "Superficial"
+        2: "Superficial",
+        3: "Deep and Superficial"
     }
 
 elif layers==4:

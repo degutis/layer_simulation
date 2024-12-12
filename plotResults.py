@@ -54,7 +54,7 @@ def plotViolin(accuracy, rho_values, CNR_change, title):
 
     # Show the plot
     plt.tight_layout()
-    g.savefig(f"../derivatives/results/{title}.png",format="png")
+    g.savefig(f"../derivatives/results/{title}.svg",format="svg")
 
 
 def plotLaminarResp(X1, X2, FigTitle):
@@ -78,7 +78,7 @@ def plotLaminarResp(X1, X2, FigTitle):
 
         axs[1, i].imshow(X2[:,:,i], cmap='gray')
 
-    fig.savefig(f'../derivatives/laminarPattern/LaminarResponse_{FigTitle}.png',format="png")
+    fig.savefig(f'../derivatives/laminarPattern/LaminarResponse_{FigTitle}.svg',format="svg")
     plt.close(fig)
 
 
@@ -119,7 +119,7 @@ def plotGraph(df, title, y_label, hue_order, layer_of_interest=None):
     g.add_legend(title="Layer", bbox_to_anchor=(1, 0.5), loc='center left')
     g.fig.suptitle(f'Separable patterns present in the {layer_of_interest} Layer')
     plt.tight_layout()
-    g.savefig(f"../derivatives/results/{title}.png", format="png")
+    g.savefig(f"../derivatives/results/{title}.svg", format="svg")
 
 def plotChangeMisalignment(accuracy, rho_values, CNR_change, percent_change, layer_of_interest, title):
     
@@ -164,7 +164,7 @@ def plotLayersUni(df, title, y_label, layer_of_interest=None):
     g.add_legend(title="Response Type", bbox_to_anchor=(1, 0.5), loc='center left')
     g.fig.suptitle(f'Separable patterns present in the {layer_of_interest} Layer')
     plt.tight_layout()
-    g.savefig(f"../derivatives/results/{title}.png", format="png")
+    g.savefig(f"../derivatives/results/{title}.svg", format="svg")
 
 def setup_df_noPercent(accuracy, layer_names, rho_values, CNR_change):
     accuracy_flat = accuracy.flatten()
