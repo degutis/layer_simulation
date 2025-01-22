@@ -27,12 +27,16 @@ if layers==3:
         0: "LayerOfIntDeep",
         1: "LayerOfIntMiddle",
         2: "LayerOfIntSuperficial",
+        3: "LayerOfIntDifferent",
+        4: "LayerOfIntSame"
     }
 
     name_dict2 = {
         0: "Deep",
         1: "Middle",
-        2: "Superficial"
+        2: "Superficial",
+        3: "Different",
+        4: "Same"
     }
 
 elif layers==4:
@@ -41,7 +45,7 @@ elif layers==4:
         0: "LayerOfIntDeep",
         1: "LayerOfIntMiddleDeep",
         2: "LayerOfIntMiddleSuperficial",
-        3: "LayerOfIntSuperficial",
+        3: "LayerOfIntSuperficial"
     }
 
     name_dict2 = {
@@ -51,8 +55,8 @@ elif layers==4:
         3: "Superficial"
     }
 
-
 sorted_folders = sorted(folders_layers, key=lambda x: next(i for i, suffix in name_dict.items() if x.endswith(suffix)))
+
 X = np.empty((trials*2, voxels, layers,iterations, rval, CNR_values, len(sorted_folders)))
 X_new  = np.empty((trials*2, voxels, layers,iterations, rval, CNR_values, len(percent_change)))
 
@@ -75,10 +79,18 @@ for index, folder in enumerate(sorted_folders):
                     vox = sim.VoxelResponses(it,r,r, numTrials_per_class=trials, betaRange=betaRange, layers=layers)                       
                     X_new[:,:,:,it,i,ib,ip] = sim.missegmentationVox(X_loaded, percent, input_seed)                   
                     accuracy_new[:,it,i,ib,ip] = vox.runSVM_classifier_acrossLayers(X_new[:,:,:,it,i,ib,ip], y)
-    
+
     accuracy_old = np.load(f'../derivatives/results/Accuracy_LayerResponse{index}_rho{(rho_values)}_CNR{str(CNR_change)}.npy')
+    if accuracy_old.ndim < 4:
+        accuracy_old = np.reshape(accuracy_old, accuracy_old.shape + (1,) * (4 - accuracy_old.ndim))
+    
     accuracy_diff = accuracy_new - np.repeat(accuracy_old[..., np.newaxis], len(percent_change), axis=4)
-    accuracy_layerSubtraction = accuracy_new - accuracy_new[index, :,:,:]
+    
+    try:
+        accuracy_layerSubtraction = accuracy_new - accuracy_new[index, :,:,:]
+    except:
+        accuracy_layerSubtraction = accuracy_new - accuracy_new[0, :,:,:] #subtract deep layer otherwise
+
     t_stat, _ = stats.ttest_1samp(accuracy_layerSubtraction, 0, axis=1)
 
     np.save(f'../derivatives/results/Difference_Accuracy_LayerResponse{index}_rho{(rho_values)}_CNR{str(CNR_change)}_MisPerc{percent_change}.npy', accuracy_diff)

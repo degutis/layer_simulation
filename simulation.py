@@ -51,22 +51,22 @@ class VoxelResponses:
 
     def samePatternAcrossColumn(self):
 
-        activity_row_class1, boldPattern_class1  = self.__generateLaminarPatternsSame__(self.seed, self.rho_c1)
-        activity_row_class2, boldPattern_class2  = self.__generateLaminarPatternsSame__(self.seed+13086, self.rho_c2)
+        activity_row_class1, boldPattern_class1, boldPatternOrig_class1  = self.__generateLaminarPatternsSame__(self.seed, self.rho_c1)
+        activity_row_class2, boldPattern_class2, boldPatternOrig_class2  = self.__generateLaminarPatternsSame__(self.seed+13086, self.rho_c2)
 
         activity_matrix_permuted, y_permuted = self.__createTrialMatrix__(activity_row_class1, activity_row_class2)
 
-        return activity_matrix_permuted, y_permuted, boldPattern_class1, boldPattern_class2
+        return activity_matrix_permuted, y_permuted, boldPattern_class1, boldPattern_class2, boldPatternOrig_class1, boldPatternOrig_class2
 
 
     def diffPatternsAcrossColumn(self):
 
-        activity_row_class1, boldPattern_class1  = self.__generateLaminarPatternsDifferent__(self.seed, self.rho_c1)
-        activity_row_class2, boldPattern_class2  = self.__generateLaminarPatternsDifferent__(self.seed+13086, self.rho_c2)
+        activity_row_class1, boldPattern_class1, boldPatternOrig_class1  = self.__generateLaminarPatternsDifferent__(self.seed, self.rho_c1)
+        activity_row_class2, boldPattern_class2, boldPatternOrig_class2  = self.__generateLaminarPatternsDifferent__(self.seed+13086, self.rho_c2)
 
         activity_matrix_permuted, y_permuted = self.__createTrialMatrix__(activity_row_class1, activity_row_class2)
 
-        return activity_matrix_permuted, y_permuted, boldPattern_class1, boldPattern_class2
+        return activity_matrix_permuted, y_permuted, boldPattern_class1, boldPattern_class2, boldPatternOrig_class1, boldPatternOrig_class2
 
     def diffPatternsAcrossColumn_oneDecodable(self, layer_of_interest):
 
@@ -109,7 +109,8 @@ class VoxelResponses:
         mriPattern_extended = sim.mri(self.w, padded_matrix_zeros)
         mriPattern = mriPattern_extended[:,:,self.layers:self.layers*2] 
 
-        return mriPattern.reshape(mriPattern.shape[0]*mriPattern.shape[1],mriPattern.shape[2]), drainedSignal.outputMatrix.transpose(1,2,0)        
+        return mriPattern.reshape(mriPattern.shape[0]*mriPattern.shape[1],mriPattern.shape[2]), drainedSignal.outputMatrix.transpose(1,2,0), boldPattern       
+
 
 
     def __generateLaminarPatternsSame__(self, seed, rho):
@@ -137,7 +138,7 @@ class VoxelResponses:
         mriPattern_extended = sim.mri(self.w, padded_matrix_zeros)
         mriPattern = mriPattern_extended[:,:,self.layers:self.layers*2] 
 
-        return mriPattern.reshape(mriPattern.shape[0]*mriPattern.shape[1],mriPattern.shape[2]), drainedSignal.outputMatrix.transpose(1,2,0)        
+        return mriPattern.reshape(mriPattern.shape[0]*mriPattern.shape[1],mriPattern.shape[2]), drainedSignal.outputMatrix.transpose(1,2,0), boldPattern        
 
 
     def __generateLaminarPatternSingleLayer__(self, seed, rho, layer_of_interest):
@@ -311,11 +312,20 @@ def missegmentationVox(X, percent, seed):
 
     np.random.seed(seed)
     layers = X.shape[2]
+    
+    amplitude_WM = 1.25 # based on Koopmans et al. 2012 Fig 6
+    amplitude_CSF = 5.6
+
     num_indices = int(X.shape[1] * (percent / 100))
+
+    noise_layer_WM = np.random.rand(X.shape[0], X.shape[1]) * amplitude_WM
+    noise_layer_CSF = np.random.rand(X.shape[0], X.shape[1]) * amplitude_CSF
+    X = np.concatenate((noise_layer_WM[:, :, np.newaxis], X, noise_layer_CSF[:, :, np.newaxis]), axis=2)
+
     X_new = X.copy()
 
-    for l1 in range(layers-1):
+    for l1 in range(layers+2-1):
         selected_indices = np.random.choice(X.shape[1], size=num_indices, replace=False)
-        X_new[:,selected_indices,l1], X_new[:,selected_indices,l1+1] = X[:,selected_indices,l1+1], X[:,selected_indices,l1]
+        X_new[:, selected_indices, l1], X_new[:, selected_indices, l1 + 1] = X[:, selected_indices, l1 + 1], X[:, selected_indices, l1]
 
-    return X_new
+    return X_new[:, :, 1:4]

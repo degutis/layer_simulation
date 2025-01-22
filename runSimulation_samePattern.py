@@ -1,15 +1,17 @@
 import simulation as sim
 import plotResults
 import createFolders as cf
-import numpy as np
-import sys
-from pathlib import Path
-import pickle as pkl
 import vasc_model as vm
+
+import numpy as np
+import pickle as pkl
+from pathlib import Path
 
 cf.createFolders()
 
 # Define some parameters
+layer_index = 5 
+
 iterations=20
 layers = 3
 depths = layers*3
@@ -32,28 +34,67 @@ CNR_values = len(CNR_change)
 beta = 0.035
 numTrials_per_class = 50
 
+if layers==3:
+    layer_dict = {
+        0: [0,1,2],
+        1: [3,4,5],
+        2: [6,7,8],
+        3: [0,1,2,6,7,8]
+    }
+
+    name_dict = {
+        0: "Deep",
+        1: "Middle",
+        2: "Superficial",
+        3: "Deep and Superficial",
+        4: "Different",
+        5: "Same"
+    }
+
+
 accuracy = np.empty((layers,iterations, rval, CNR_values))
 accuracy_deconvolved = np.empty((layers,iterations, rval, CNR_values))
 
-pathName = f'../derivatives/pipeline_files/Layers{layers}_Beta{beta}_Trials{numTrials_per_class}'
+pathName = f'../derivatives/pipeline_files/Layers{layers}_Beta{beta}_Trials{numTrials_per_class}_LayerOfInt{name_dict[layer_index]}'
 Path(pathName).mkdir(parents=True, exist_ok=True)
 
 for it in range(iterations):
     #for i in range(rval):
     for i,r in enumerate(rMatrix1):
         for ib,b in enumerate(CNR_change):
-            betaRange = [beta, beta*CNR_change[ib]]
- #           vox = sim.VoxelResponses(it,rho_matrix[i,:], rho_matrix[i,:], numTrials_per_class=numTrials_per_class, betaRange=betaRange, layers=layers)                       
- #           vox = sim.VoxelResponses(it,rho_matrix1[i,:], rho_matrix2[i,:], numTrials_per_class=numTrials_per_class, betaRange=betaRange, layers=layers)                       
-            vox = sim.VoxelResponses(it,r, r, numTrials_per_class=numTrials_per_class, betaRange=betaRange, layers=layers)                       
             
-            X,y,_, _ = vox.samePatternAcrossColumn()
-            accuracy[:,it, i, ib] = vox.runSVM_classifier_acrossLayers(X, y)
+            betaRange = [beta, beta*CNR_change[ib]]
+            nameFile = f'{pathName}/Iteration{it}_Rho{r}_CNR{b}.pickle'
+
+            try:
+                with open(nameFile, 'rb') as handle:
+                    X, y = pkl.load(handle)
+
+            except:
+                vox = sim.VoxelResponses(it,r, r, numTrials_per_class=numTrials_per_class, betaRange=betaRange, layers=layers)                       
+ #              vox = sim.VoxelResponses(it,r, r, numTrials_per_class=numTrials_per_class, betaRange=betaRange, layers=layers, fwhmRange = [0.83, 0.83])                       
+ #               X,y,_,_,boldPattern1,boldPattern2 = vox.diffPatternsAcrossColumn()
+                X,y,_, _,boldPattern1,boldPattern2 = vox.samePatternAcrossColumn()
+                accuracy[:,it, i, ib] = vox.runSVM_classifier_acrossLayers(X, y)
+
+                with open(nameFile, 'wb') as handle:
+                    pkl.dump((X, y, boldPattern1, boldPattern2), handle)
+
+            accuracy[:,it,i, ib] = vox.runSVM_classifier_acrossLayers(X, y)
 
             X_deconvolved = vm.deconvolve(X) 
             accuracy_deconvolved[:,it, i, ib] = vox.runSVM_classifier_acrossLayers(X_deconvolved, y)
     
-#rho_values = rho_matrix[:,0]
+for i,r in enumerate(rMatrix1):
+    rho_current = [r]
+    for ib,b in enumerate(CNR_change):
+        CNR_current = [b]
+        accuracy_file = f'../derivatives/results/Accuracy_LayerResponse{str(layer_index)}_rho{str(rho_current)}_CNR{str(CNR_current)}.npy'
+        np.save(accuracy_file, accuracy[:,:,i,ib])
+        accuracy_file_dec = f'../derivatives/results/Deconvolution_Accuracy_LayerResponse{str(layer_index)}_rho{str(rho_current)}_CNR{str(CNR_current)}.npy'
+        np.save(accuracy_file_dec, accuracy_deconvolved[:,:,i,ib])
+
+
 rho_values = rMatrix1
-plotResults.plotViolin(accuracy, rho_values, CNR_change, "Layers_GRID_SamePatternAcrossLayers")
-plotResults.plotViolin(accuracy_deconvolved, rho_values, CNR_change, "Layers_GRID_SamePatternAcrossLayers_deconvolved")
+#plotResults.plotViolin(accuracy, rho_values, CNR_change, "Layers_GRID_SamePatternAcrossLayers_noLam2Ddiff")
+#plotResults.plotViolin(accuracy_deconvolved, rho_values, CNR_change, "Layers_GRID_SamePatternAcrossLayers_deconvolved_noLam2Ddiff")

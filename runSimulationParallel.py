@@ -5,6 +5,7 @@ import numpy as np
 import sys
 from pathlib import Path
 import pickle as pkl
+import stats
 
 cf.createFolders()
 
@@ -62,6 +63,7 @@ try:
     accuracy = np.load(accuracy_file)
     print(f"Loaded accuracy data from {accuracy_file}")
 
+
 except FileNotFoundError:
     accuracy = np.empty((layers,iterations, rval, CNR_values))
     for it in range(iterations):
@@ -85,4 +87,5 @@ except FileNotFoundError:
 
     np.save(accuracy_file, accuracy)
 
+stats.runThreeLayers(accuracy,f'GRID_{name_dict[layer_index]}.txt')
 plotResults.plotViolin(accuracy, rho_values, CNR_change, f'GRID_{name_dict[layer_index]}')
