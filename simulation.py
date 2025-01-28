@@ -295,10 +295,12 @@ class VoxelResponses:
         for tr in range(self.numTrials_per_class):
 
             sim = cf.simulation(self.N, self.L, self.N_depth_mriSampling, self.layers_mriSampling, seed+tr)
+            try:
+                drainedSignal = vm.vascModel(boldPattern[:, :, :, tr].transpose((2, 1, 0)), layers=self.N_depth, fwhm=self.fwhmRange, propChange=propChange)
+            except:
+                drainedSignal = vm.vascModel(boldPattern[:, :, :].transpose((2, 1, 0)), layers=self.N_depth, fwhm=self.fwhmRange, propChange=propChange)
 
-            drainedSignal = vm.vascModel(boldPattern[:, :, :, tr].transpose((2, 1, 0)), layers=self.N_depth, fwhm=self.fwhmRange, propChange=propChange)
             drainedSignal_output[:, :, :, tr] = drainedSignal.outputMatrix.transpose(1, 2, 0)
-                
             padded_matrix_zeros[:, :, self.N_depth:self.N_depth*2, tr] = drainedSignal_output[:, :, :, tr]
             mriPattern_extended[:, :, :, tr] = sim.mri(self.w, padded_matrix_zeros[:,:,:,tr])
             mriPattern[:, :, :, tr] = mriPattern_extended[:, :, self.layers:self.layers*2, tr]
@@ -311,7 +313,6 @@ class VoxelResponses:
 def missegmentationVox(X, percent, seed):
 
     np.random.seed(seed)
-    layers = X.shape[2]
     
     amplitude_WM = 1.25 # based on Koopmans et al. 2012 Fig 6
     amplitude_CSF = 5.6
@@ -324,7 +325,9 @@ def missegmentationVox(X, percent, seed):
 
     X_new = X.copy()
 
-    for l1 in range(layers+2-1):
+    layers = X.shape[2]
+
+    for l1 in range(layers-1):
         selected_indices = np.random.choice(X.shape[1], size=num_indices, replace=False)
         X_new[:, selected_indices, l1], X_new[:, selected_indices, l1 + 1] = X[:, selected_indices, l1 + 1], X[:, selected_indices, l1]
 

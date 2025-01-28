@@ -27,14 +27,14 @@ if layers==3:
         0: [0,1,2],
         1: [3,4,5],
         2: [6,7,8],
-        3: [0,1,2,6,7,8]
+        5: [0,1,2,6,7,8]
     }
 
     name_dict = {
         0: "Deep",
         1: "Middle",
         2: "Superficial",
-        3: "Deep and Superficial"
+        5: "Deep and Superficial"
     }
 
 elif layers==4:

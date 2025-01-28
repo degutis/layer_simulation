@@ -39,23 +39,8 @@ if layers==3:
         4: "Same"
     }
 
-elif layers==4:
-
-    name_dict = {
-        0: "LayerOfIntDeep",
-        1: "LayerOfIntMiddleDeep",
-        2: "LayerOfIntMiddleSuperficial",
-        3: "LayerOfIntSuperficial"
-    }
-
-    name_dict2 = {
-        0: "Deep",
-        1: "MiddleDeep",
-        2: "MiddleSuperficial",
-        3: "Superficial"
-    }
-
 sorted_folders = sorted(folders_layers, key=lambda x: next(i for i, suffix in name_dict.items() if x.endswith(suffix)))
+print(sorted_folders)
 
 X = np.empty((trials*2, voxels, layers,iterations, rval, CNR_values, len(sorted_folders)))
 X_new  = np.empty((trials*2, voxels, layers,iterations, rval, CNR_values, len(percent_change)))
@@ -63,6 +48,8 @@ X_new  = np.empty((trials*2, voxels, layers,iterations, rval, CNR_values, len(pe
 accuracy_new  = np.empty((layers, iterations, rval, CNR_values, len(percent_change)))
 
 for index, folder in enumerate(sorted_folders):
+    print(index)
+    print(folder)
     for i,r in enumerate(rho_values):
         for ib,b in enumerate(CNR_change):
             for it in range(iterations):
@@ -81,15 +68,21 @@ for index, folder in enumerate(sorted_folders):
                     accuracy_new[:,it,i,ib,ip] = vox.runSVM_classifier_acrossLayers(X_new[:,:,:,it,i,ib,ip], y)
 
     accuracy_old = np.load(f'../derivatives/results/Accuracy_LayerResponse{index}_rho{(rho_values)}_CNR{str(CNR_change)}.npy')
+    
     if accuracy_old.ndim < 4:
         accuracy_old = np.reshape(accuracy_old, accuracy_old.shape + (1,) * (4 - accuracy_old.ndim))
     
     accuracy_diff = accuracy_new - np.repeat(accuracy_old[..., np.newaxis], len(percent_change), axis=4)
     
-    try:
+    if index==3:
+        accuracy_layerSubtraction = accuracy_new - accuracy_new[0, :,:,:] #subtract deep layer in diff
+        accuracy_layerSubtraction[0,:,:,:] = accuracy_new[2,:,:,:] - accuracy_new[1,:,:,:]
+
+    elif index==4:
+        accuracy_layerSubtraction = accuracy_new - accuracy_new[1, :,:,:] #subtract middle layer in same 
+        accuracy_layerSubtraction[1,:,:,:] = accuracy_new[0,:,:,:] - accuracy_new[2,:,:,:]
+    else:
         accuracy_layerSubtraction = accuracy_new - accuracy_new[index, :,:,:]
-    except:
-        accuracy_layerSubtraction = accuracy_new - accuracy_new[0, :,:,:] #subtract deep layer otherwise
 
     t_stat, _ = stats.ttest_1samp(accuracy_layerSubtraction, 0, axis=1)
 

@@ -28,32 +28,15 @@ if layers==3:
         0: "LayerOfIntDeep",
         1: "LayerOfIntMiddle",
         2: "LayerOfIntSuperficial",
-        3: "LayerOfIntDeep and Superficial"
+        5: "LayerOfIntDeep and Superficial"
     }
 
     name_dict2 = {
         0: "Deep",
         1: "Middle",
         2: "Superficial",
-        3: "Deep and Superficial"
+        5: "Deep and Superficial"
     }
-
-elif layers==4:
-
-    name_dict = {
-        0: "LayerOfIntDeep",
-        1: "LayerOfIntMiddleDeep",
-        2: "LayerOfIntMiddleSuperficial",
-        3: "LayerOfIntSuperficial",
-    }
-
-    name_dict2 = {
-        0: "Deep",
-        1: "MiddleDeep",
-        2: "MiddleSuperficial",
-        3: "Superficial"
-    }
-
 
 sorted_folders = sorted(folders_layers, key=lambda x: next(i for i, suffix in name_dict.items() if x.endswith(suffix)))
 X_new  = np.empty((trials*2, voxels, layers,iterations, rval, CNR_values))

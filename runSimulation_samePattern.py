@@ -2,6 +2,7 @@ import simulation as sim
 import plotResults
 import createFolders as cf
 import vasc_model as vm
+import stats
 
 import numpy as np
 import pickle as pkl
@@ -9,8 +10,9 @@ from pathlib import Path
 
 cf.createFolders()
 
-# Define some parameters
-layer_index = 5 
+# Define some parameters 3/4 for diff/same
+layer_index = 4 
+# also add same FWHM
 
 iterations=20
 layers = 3
@@ -35,20 +37,9 @@ beta = 0.035
 numTrials_per_class = 50
 
 if layers==3:
-    layer_dict = {
-        0: [0,1,2],
-        1: [3,4,5],
-        2: [6,7,8],
-        3: [0,1,2,6,7,8]
-    }
-
     name_dict = {
-        0: "Deep",
-        1: "Middle",
-        2: "Superficial",
-        3: "Deep and Superficial",
-        4: "Different",
-        5: "Same"
+        3: "Different",
+        4: "Same"
     }
 
 
@@ -84,15 +75,22 @@ for it in range(iterations):
 
             X_deconvolved = vm.deconvolve(X) 
             accuracy_deconvolved[:,it, i, ib] = vox.runSVM_classifier_acrossLayers(X_deconvolved, y)
-    
+
+stats.twoWayAnova(accuracy,f'{name_dict[layer_index]}_twoWayANOVA.txt')
+stats.twoWayAnova(accuracy_deconvolved,f'{name_dict[layer_index]}_Deconvolved_twoWayANOVA.txt')
+
 for i,r in enumerate(rMatrix1):
     rho_current = [r]
     for ib,b in enumerate(CNR_change):
         CNR_current = [b]
         accuracy_file = f'../derivatives/results/Accuracy_LayerResponse{str(layer_index)}_rho{str(rho_current)}_CNR{str(CNR_current)}.npy'
         np.save(accuracy_file, accuracy[:,:,i,ib])
+        stats.runThreeLayers(accuracy[:,:,i,ib],f'Null_{name_dict[layer_index]}_CNR_{CNR_current}_rho_{rho_current}.txt')
+
         accuracy_file_dec = f'../derivatives/results/Deconvolution_Accuracy_LayerResponse{str(layer_index)}_rho{str(rho_current)}_CNR{str(CNR_current)}.npy'
         np.save(accuracy_file_dec, accuracy_deconvolved[:,:,i,ib])
+        stats.runThreeLayers(accuracy_deconvolved[:,:,i,ib],f'{name_dict[layer_index]}_Deconvolved_CNR_{CNR_current}_rho_{rho_current}.txt')
+
 
 
 rho_values = rMatrix1
