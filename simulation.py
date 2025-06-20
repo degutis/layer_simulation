@@ -24,12 +24,12 @@ class VoxelResponses:
         self.N_depth = N_depth
         self.layers = layers
 
-        if self.layers==3:
-            self.layers_mriSampling = self.layers*3-1
-            self.N_depth_mriSampling = self.N_depth*3-self.layers
-        elif self.layers==4:
+        if self.layers%2==0:
             self.layers_mriSampling = self.layers*3
             self.N_depth_mriSampling = self.N_depth*3
+        else:
+            self.layers_mriSampling = int(self.layers*3-(self.layers/3))
+            self.N_depth_mriSampling = self.N_depth*3-self.layers
         
         self.deltaRelative = deltaRelative
         self.w = samplingVox
@@ -76,6 +76,16 @@ class VoxelResponses:
         activity_matrix_permuted, y_permuted = self.__createTrialMatrix__(self.activity_row_class1, self.activity_row_class2)
 
         return activity_matrix_permuted, y_permuted, self.boldPattern_class1, self.boldPattern_class2, self.boldPatternOrig_class1, self.boldPatternOrig_class2
+
+    def diffPatternsAcrossColumn_twoDecodable(self, layer_block1, layer_block2):
+
+        self.activity_row_class1, self.boldPattern_class1, self.boldPatternOrig_class1  = self.__generateLaminarPatternTwoLayersDifferent__(self.seed, self.seed+20000, self.seed+20001, self.rho_c1, layer_block1, layer_block2)
+        self.activity_row_class2, self.boldPattern_class2, self.boldPatternOrig_class2  = self.__generateLaminarPatternTwoLayersDifferent__(self.seed+13086, self.seed+20000+13086, self.seed+20001+13086, self.rho_c1, layer_block1, layer_block2)
+
+        activity_matrix_permuted, y_permuted = self.__createTrialMatrix__(self.activity_row_class1, self.activity_row_class2)
+
+        return activity_matrix_permuted, y_permuted, self.boldPattern_class1, self.boldPattern_class2, self.boldPatternOrig_class1, self.boldPatternOrig_class2
+
 
 
     def __generateLaminarPatternsDifferent__(self, seed, rho):
@@ -173,6 +183,67 @@ class VoxelResponses:
 
 
         return mriPattern_reshaped.transpose(2,0,1), drainedSignal_output, boldPattern      
+
+
+    def __generateLaminarPatternTwoLayersDifferent__(self, seed, seedA, seedB, rho, layer_block1,layer_block2):
+
+        boldPattern        = np.empty((self.N, self.N, self.N_depth, self.numTrials_per_class))
+        columnPattern      = np.empty((self.N, self.N, self.N_depth, self.numTrials_per_class))
+        drainedSignal_output = np.empty((self.N, self.N, self.N_depth, self.numTrials_per_class))
+        padded_matrix_zeros  = np.zeros((self.N, self.N, self.N_depth_mriSampling, self.numTrials_per_class))
+        mriPattern_extended  = np.empty((self.L, self.L, self.layers_mriSampling, self.numTrials_per_class))
+        mriPattern           = np.empty((self.L, self.L, self.layers, self.numTrials_per_class))
+        
+        layer_range = range(self.N_depth)
+
+        for tr in range(self.numTrials_per_class):
+
+            input_seeds = []
+            for la in layer_range:
+                if la in layer_block1:
+                    input_seeds.append(seedA)
+                elif la in layer_block2:
+                    input_seeds.append(seedB)
+                else:
+                    # same randomized‐seed formula as before:
+                    input_seeds.append(tr * self.N_depth + la + (seed + 1))
+
+            for la in layer_range:
+
+                sim = cf.simulation(
+                    self.N,
+                    self.L,
+                    self.N_depth_mriSampling,
+                    self.layers_mriSampling,
+                    input_seeds[la]
+                )
+
+                gwn = sim.gwnoise()          
+                columnPattern[:, :, la, tr] = sim.columnPattern(rho, self.deltaRelative, gwn)
+                boldPattern[:, :, la, tr], _, _ = sim.bold(
+                    self.fwhm_layers[la],
+                    self.beta_layers[la],
+                    columnPattern[:, :, la, tr]
+                )
+
+            drainedSignal = vm.vascModel(
+                boldPattern[:, :, :, tr].transpose((2, 1, 0)),
+                layers=self.N_depth,
+                fwhm=self.fwhmRange
+            )
+
+            drainedSignal_output[:, :, :, tr] = drainedSignal.outputMatrix.transpose(1, 2, 0)
+            padded_matrix_zeros[:, :, self.N_depth:self.N_depth*2, tr] = drainedSignal_output[:, :, :, tr]
+            mriPattern_extended[:, :, :, tr] = sim.mri(self.w, padded_matrix_zeros[:, :, :, tr])
+            mriPattern[:, :, :, tr] = mriPattern_extended[:, :, self.layers:self.layers*2, tr]
+
+        mriPattern_reshaped = mriPattern.reshape(
+            mriPattern.shape[0] * mriPattern.shape[1],
+            mriPattern.shape[2],
+            mriPattern.shape[3]
+        )
+
+        return mriPattern_reshaped.transpose(2, 0, 1), drainedSignal_output, boldPattern
 
 
     def __createTrialMatrix__(self, activity_row_class1, activity_row_class2):
@@ -308,6 +379,53 @@ class VoxelResponses:
         mriPattern_reshaped = mriPattern.reshape(mriPattern.shape[0] * mriPattern.shape[1], mriPattern.shape[2], mriPattern.shape[3])
 
         return mriPattern_reshaped.transpose(2,0,1), drainedSignal_output       
+
+    def __calculateCNR__(self, X, y):
+
+        """
+        Compute per-feature, average single-feature, and multivariate (maximal) CNR for two classes.
+        """
+        X = np.asarray(X)
+        y = np.asarray(y.flatten())
+        classes = np.unique(y)
+        if classes.size != 2:
+            raise ValueError("y must contain exactly two classes")
+        c1, c2 = classes
+        mask1 = (y==c1)
+        mask2 = (y==c2)
+        
+        X1 = X[mask1, :]
+        X2 = X[mask2, :]
+        n1, n2 = X1.shape[0], X2.shape[0]
+
+        mu1 = X1.mean(axis=0)
+        mu2 = X2.mean(axis=0)
+        delta_mu = mu1 - mu2
+
+        R1 = X1 - mu1
+        R2 = X2 - mu2
+        noise_cov = (R1.T @ R1 + R2.T @ R2) / (n1 + n2 - 2)
+
+        sigma = np.sqrt(np.diag(noise_cov))
+        cnr_feature = np.abs(delta_mu) / sigma
+        cnr_avg = np.mean(cnr_feature)
+
+        inv_noise = np.linalg.pinv(noise_cov)
+        m2 = delta_mu.T @ inv_noise @ delta_mu
+        cnr_global = np.sqrt(np.clip(m2, 0, None)) # remove negative values...
+
+        return cnr_feature, cnr_avg, cnr_global
+
+    def runFullCNR(self, X, y):
+        
+        n_layers = X.shape[2]
+        cnr_avg_vec = np.zeros(n_layers)
+        cnr_global_vec = np.zeros(n_layers)
+
+        for i in range(n_layers):
+            _, cnr_avg_vec[i], cnr_global_vec[i] = self.__calculateCNR__(X[:, :, i], y)
+
+        return cnr_avg_vec, cnr_global_vec
 
 
 def missegmentationVox(X, percent, seed):

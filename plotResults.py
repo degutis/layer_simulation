@@ -18,7 +18,10 @@ def plotViolin(accuracy, rho_values, CNR_change, title):
         layer_names = ["Deep", "Middle Deep", "Middle Superficial", "Superficial"] 
     elif numLayers==2:
         layer_names = ["Deep", "Superficial"] 
-
+    elif numLayers==9:
+        layer_names = ["1", "2", "3", "4", "5", "6", "7", "8", "9"] 
+    elif numLayers==6:
+        layer_names = ["1", "2", "3", "4", "5", "6"] 
 
     # Flatten the tensor into a long format
     accuracy_flat = accuracy.flatten()
@@ -187,3 +190,53 @@ def setup_df_noPercent(accuracy, layer_names, rho_values, CNR_change):
     }
 
     return pd.DataFrame(df_data)
+
+
+def plotCNR(CNR, rho_values, CNR_change, title):
+
+    numLayers = CNR.shape[0]
+    numIterations = CNR.shape[1]
+    numParams = CNR.shape[2]
+    numBetas = CNR.shape[3]
+
+    if numLayers==3:
+        layer_names = ["Deep", "Middle", "Superficial"]
+    elif numLayers==4:
+        layer_names = ["Deep", "Middle Deep", "Middle Superficial", "Superficial"] 
+    elif numLayers==9:
+        layer_names = ["1", "2", "3", "4", "5", "6", "7", "8", "9"] 
+    elif numLayers==6:
+        layer_names = ["1", "2", "3", "4", "5", "6"] 
+
+    # Flatten the tensor into a long format
+    cnr_flat = CNR.flatten()
+
+    # Create indices for Layer, Iteration, rho_values (Param1), and CNR_change (Param2)
+    layers = np.repeat(layer_names, numIterations * numParams * numBetas)
+    iterations = np.tile(np.repeat(np.arange(1, numIterations + 1), numParams * numBetas), numLayers)
+    rhos = np.tile(np.repeat(rho_values, numBetas), numLayers * numIterations)
+    betas = np.tile(CNR_change, numLayers * numIterations * numParams)
+
+    # Create the DataFrame
+    df = pd.DataFrame({
+        'Layer': layers,
+        'Iteration': iterations,
+        'Rho': rhos,       
+        'CNR_change': betas,
+        'CNR': cnr_flat
+    })
+
+    # Initialize the FacetGrid with rows for Rho and columns for CNR_change
+    g = sns.FacetGrid(df, row='Rho', col='CNR_change', margin_titles=True, height=4, aspect=1)
+
+    # Map the violinplot function to the grid, with hue for Layer
+    # g.map(sns.lineplot, 'Layer', 'CNR', order=layer_names, palette="Set2", inner = "points")
+    g.map(sns.lineplot, 'Layer', 'CNR', errorbar='sd', marker='o', palette="Set2")
+
+    g.set_axis_labels("Layer", "CNR")
+    g.set_titles(row_template="Rho = {row_name}", col_template="CNR_change = {col_name}")
+    g.add_legend()
+
+    # Show the plot
+    plt.tight_layout()
+    g.savefig(f"../derivatives/results/{title}.svg",format="svg")

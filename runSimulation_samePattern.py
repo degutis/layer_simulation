@@ -10,8 +10,8 @@ from pathlib import Path
 
 cf.createFolders()
 
-# Define some parameters 3/4 for diff/same
-layer_index = 4 
+# Define some parameters 3/4/5 for diff/same/same_psf
+layer_index = 3 
 # also add same FWHM
 
 iterations=20
@@ -25,9 +25,6 @@ rval = rho_matrix.shape[0]
 
 rMatrix1 = [0.4, 0.5, 0.6, 0.7]
 rMatrix2 = [0.4, 0.5, 0.6, 0.7]
-#rMatrix2 = np.array([0.2, 0.3, 0.4, 0.5, 0.6])
-#rho_matrix1 = np.tile(rMatrix1.reshape(-1, 1), depths)
-#rho_matrix2 = np.tile(rMatrix2.reshape(-1, 1), depths)
 rval = len(rMatrix1)
 
 CNR_change = [1]
@@ -39,7 +36,8 @@ numTrials_per_class = 50
 if layers==3:
     name_dict = {
         3: "Different",
-        4: "Same"
+        4: "Same",
+        5: "Same_PSF_equil"
     }
 
 
@@ -62,10 +60,18 @@ for it in range(iterations):
                     X, y = pkl.load(handle)
 
             except:
-                vox = sim.VoxelResponses(it,r, r, numTrials_per_class=numTrials_per_class, betaRange=betaRange, layers=layers)                       
- #              vox = sim.VoxelResponses(it,r, r, numTrials_per_class=numTrials_per_class, betaRange=betaRange, layers=layers, fwhmRange = [0.83, 0.83])                       
- #               X,y,_,_,boldPattern1,boldPattern2 = vox.diffPatternsAcrossColumn()
-                X,y,_, _,boldPattern1,boldPattern2 = vox.samePatternAcrossColumn()
+                if layer_index == 3: 
+                    vox = sim.VoxelResponses(it,r, r, numTrials_per_class=numTrials_per_class, betaRange=betaRange, layers=layers)                       
+                    X,y,_,_,boldPattern1,boldPattern2 = vox.diffPatternsAcrossColumn()
+                
+                elif layer_index == 4:
+                    vox = sim.VoxelResponses(it,r, r, numTrials_per_class=numTrials_per_class, betaRange=betaRange, layers=layers)                       
+                    X,y,_,_,boldPattern1,boldPattern2 = vox.samePatternAcrossColumn()
+                
+                elif layer_index == 5:
+                    vox = sim.VoxelResponses(it,r, r, numTrials_per_class=numTrials_per_class, betaRange=betaRange, layers=layers, fwhmRange = [0.83, 0.83])                       
+                    X,y,_,_,boldPattern1,boldPattern2 = vox.samePatternAcrossColumn()
+
                 accuracy[:,it, i, ib] = vox.runSVM_classifier_acrossLayers(X, y)
 
                 with open(nameFile, 'wb') as handle:
@@ -94,5 +100,13 @@ for i,r in enumerate(rMatrix1):
 
 
 rho_values = rMatrix1
-#plotResults.plotViolin(accuracy, rho_values, CNR_change, "Layers_GRID_SamePatternAcrossLayers_noLam2Ddiff")
-#plotResults.plotViolin(accuracy_deconvolved, rho_values, CNR_change, "Layers_GRID_SamePatternAcrossLayers_deconvolved_noLam2Ddiff")
+
+if layer_index == 3: 
+    plotResults.plotViolin(accuracy, rho_values, CNR_change, "Layers_GRID_DiffPatternAcrossLayers")
+    plotResults.plotViolin(accuracy_deconvolved, rho_values, CNR_change, "Layers_GRID_DiffPatternAcrossLayers_deconvolved")
+elif layer_index == 4: 
+    plotResults.plotViolin(accuracy, rho_values, CNR_change, "Layers_GRID_SamePatternAcrossLayers")
+    plotResults.plotViolin(accuracy_deconvolved, rho_values, CNR_change, "Layers_GRID_SamePatternAcrossLayers_deconvolved")
+elif layer_index == 5: 
+    plotResults.plotViolin(accuracy, rho_values, CNR_change, "Layers_GRID_SamePatternAcrossLayers_noLam2Ddiff")
+    plotResults.plotViolin(accuracy_deconvolved, rho_values, CNR_change, "Layers_GRID_SamePatternAcrossLayers_deconvolved_noLam2Ddiff")

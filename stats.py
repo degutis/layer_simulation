@@ -36,22 +36,36 @@ def twoWayAnova(accuracy,output_name):
 
     outputDir = f"../derivatives/stats/{output_name}.txt"
 
-    layers, subjects, rhos, cnr = accuracy.shape
+    if accuracy.shape[3]==1:
+        accuracy = accuracy[:,:,:,0]
 
-    if cnr ==1:
-        data = {
-            "Layer": np.repeat(np.arange(layers), subjects * rhos),
-            "Size": np.tile(np.repeat(np.arange(rhos), subjects), layers),
-            "Accuracy": accuracy.ravel()
-        }
-    else: 
-        raise NotImplementedError("Three way ANOVA with CNR has not been implemented.")
+    layers, subjects, rhos = accuracy.shape
+    df_list = []
 
-    df = pd.DataFrame(data)
+    for layer in range(layers):
+        for participant in range(subjects):
+            for size in range(rhos):
+                df_list.append([layer, size, accuracy[layer, participant, size]])
 
-    # Run two-way ANOVA with interaction
+    df = pd.DataFrame(df_list, columns=["Layer", "Size", "Accuracy"])
+
     model = ols("Accuracy ~ C(Layer) * C(Size)", data=df).fit()
     anova_table = sm.stats.anova_lm(model, typ=2)
+
+#    data = {
+#        "Layer": np.repeat(np.arange(layers), subjects * rhos),
+#        "Size": np.tile(np.repeat(np.arange(rhos), subjects), layers),
+#        "Accuracy": accuracy.ravel()
+#            "Size": np.repeat(np.arange(rhos), subjects * layers),
+#            "Layer": np.tile(np.repeat(np.arange(layers), subjects), rhos),
+#            "Accuracy": accuracy.ravel()
+#            }
+#    df = pd.DataFrame(data)
+#    print(df.head(50))
+    
+    # Run two-way ANOVA with interaction
+#    model = ols("Accuracy ~ C(Layer) * C(Size)", data=df).fit()
+#    anova_table = sm.stats.anova_lm(model, typ=2)
 
     with open(outputDir, "w") as file:
         file.write("\t".join(["Row", "sum_sq", "df", "F", "PR(>F)"]) + "\n")
