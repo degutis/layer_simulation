@@ -27,13 +27,14 @@ class VoxelResponses:
         if self.layers%2==0:
             self.layers_mriSampling = self.layers*3
             self.N_depth_mriSampling = self.N_depth*3
+            self.layers_mriSampling_start = (self.layers_mriSampling - self.layers) // 2
+            self.N_depth_mriSampling_start = (self.N_depth_mriSampling - self.N_depth) // 2
 
         else:
             self.layers_mriSampling = int(self.layers*3-(self.layers/3))
-            self.N_depth_mriSampling = self.N_depth*3-self.layers
-        
-        self.layers_mriSampling_start = (self.layers_mriSampling - self.layers) // 2
-        self.N_depth_mriSampling_start = (self.N_depth_mriSampling - self.N_depth) // 2
+            self.N_depth_mriSampling = self.N_depth*3-self.layers        
+            self.layers_mriSampling_start = self.layers
+            self.N_depth_mriSampling_start = self.N_depth
         
         self.deltaRelative = deltaRelative
         self.w = samplingVox

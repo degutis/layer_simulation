@@ -13,7 +13,7 @@ cf.createFolders()
 layer_index = int(sys.argv[1])  # This defines the layers to decode (e.g., [9, 10, 11], etc.)
 # layer_index = 1
 print(layer_index)
-iterations=20
+iterations=10
 layers = 3
 rho_values = [0.4] 
 CNR_change = [1]
@@ -38,21 +38,6 @@ if layers==3:
         5: "Deep and Superficial"
     }
 
-elif layers==4:
-    
-    layer_dict = {
-        0: [0, 1, 2],
-        1: [3, 4, 5],
-        2: [6, 7, 8],
-        3: [9, 10, 11],
-    }
-
-    name_dict = {
-        0: "Deep",
-        1: "Middle Deep",
-        2: "Middle Superficial",
-        3: "Superficial",
-    }
 elif layers==6:
     
     layer_dict = {
