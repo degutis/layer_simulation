@@ -84,7 +84,7 @@ class VoxelResponses:
     def diffPatternsAcrossColumn_twoDecodable(self, layer_block1, layer_block2):
 
         self.activity_row_class1, self.boldPattern_class1, self.boldPatternOrig_class1  = self.__generateLaminarPatternTwoLayersDifferent__(self.seed, self.seed+20000, self.seed+20001, self.rho_c1, layer_block1, layer_block2)
-        self.activity_row_class2, self.boldPattern_class2, self.boldPatternOrig_class2  = self.__generateLaminarPatternTwoLayersDifferent__(self.seed+13086, self.seed+20000+13086, self.seed+20001+13086, self.rho_c1, layer_block1, layer_block2)
+        self.activity_row_class2, self.boldPattern_class2, self.boldPatternOrig_class2  = self.__generateLaminarPatternTwoLayersDifferent__(self.seed+13086, self.seed+20000+13086, self.seed+20001+13086, self.rho_c2, layer_block1, layer_block2)
 
         activity_matrix_permuted, y_permuted = self.__createTrialMatrix__(self.activity_row_class1, self.activity_row_class2)
 
@@ -96,16 +96,11 @@ class VoxelResponses:
 
         columnPattern = np.empty((self.N, self.N, self.N_depth))
         boldPattern = np.empty((self.N, self.N, self.N_depth))
-        mriPattern = np.empty((self.L, self.L, self.layers))
-        mriPattern_extended = np.empty((self.L, self.L, self.layers_mriSampling, self.numTrials_per_class))
-        mriPattern = np.empty((self.L, self.L, self.layers, self.numTrials_per_class))
 
         padded_matrix_zeros = np.zeros((self.N, self.N, self.N_depth_mriSampling))
         #gaussian_noise_matrix = np.random.normal(loc=1, scale=0.1, size=(self.N, self.N, self.N_depth_mriSampling))
 
-
-        seed_list = [seed, seed+1, seed+2, seed+3] # three separate 
-        seed_list = np.repeat(seed_list,3)
+        seed_list = np.repeat(np.arange(seed, seed + self.layers), 3)
 
         if type(rho) == float:
             rho = np.repeat(rho,self.N_depth)
@@ -134,9 +129,6 @@ class VoxelResponses:
 
         columnPattern = np.empty((self.N, self.N, self.N_depth))
         boldPattern = np.empty((self.N, self.N, self.N_depth))
-        mriPattern = np.empty((self.L, self.L, self.layers))
-        mriPattern_extended = np.empty((self.L, self.L, self.layers_mriSampling, self.numTrials_per_class))
-        mriPattern = np.empty((self.L, self.L, self.layers, self.numTrials_per_class))
 
         padded_matrix_zeros = np.zeros((self.N, self.N, self.N_depth_mriSampling))
 
@@ -193,7 +185,6 @@ class VoxelResponses:
             mriPattern[:, :, :, tr] = mriPattern_extended[:, :, self.layers_mriSampling_start:self.layers_mriSampling_start+self.layers, tr]
         
         mriPattern_reshaped = mriPattern.reshape(mriPattern.shape[0] * mriPattern.shape[1], mriPattern.shape[2], mriPattern.shape[3])
-
 
         return mriPattern_reshaped.transpose(2,0,1), drainedSignal_output, boldPattern      
 
@@ -477,4 +468,4 @@ def missegmentationVox(X, percent, seed):
         selected_indices = np.random.choice(X.shape[1], size=num_indices, replace=False)
         X_new[:, selected_indices, l1], X_new[:, selected_indices, l1 + 1] = X[:, selected_indices, l1 + 1], X[:, selected_indices, l1]
 
-    return X_new[:, :, 1:4]
+    return X_new[:, :, 1:-1]
