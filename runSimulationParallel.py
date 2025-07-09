@@ -14,9 +14,9 @@ layer_index = int(sys.argv[1])  # This defines the layers to decode (e.g., [9, 1
 # layer_index = 1
 print(layer_index)
 iterations=20
-layers = 6
-rho_values = [0.6] 
-CNR_change = [4]
+layers = 3
+rho_values = [0.4] 
+CNR_change = [1]
 rval = len(rho_values)
 CNR_values = len(CNR_change)
 
