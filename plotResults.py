@@ -14,12 +14,6 @@ def plotViolin(accuracy, rho_values, CNR_change, title):
 
     if numLayers==3:
         layer_names = ["Deep", "Middle", "Superficial"]
-    elif numLayers==4:
-        layer_names = ["Deep", "Middle Deep", "Middle Superficial", "Superficial"] 
-    elif numLayers==2:
-        layer_names = ["Deep", "Superficial"] 
-    elif numLayers==9:
-        layer_names = ["1", "2", "3", "4", "5", "6", "7", "8", "9"] 
     elif numLayers==6:
         layer_names = ["1", "2", "3", "4", "5", "6"] 
 
@@ -57,7 +51,7 @@ def plotViolin(accuracy, rho_values, CNR_change, title):
 
     # Show the plot
     plt.tight_layout()
-    g.savefig(f"../derivatives/results/{title}.svg",format="svg")
+    g.savefig(f"../derivatives/results_layers{numLayers}/{title}.svg",format="svg")
 
 
 def plotLaminarResp(X1, X2, FigTitle):
@@ -122,7 +116,7 @@ def plotGraph(df, title, y_label, hue_order, layer_of_interest=None):
     g.add_legend(title="Layer", bbox_to_anchor=(1, 0.5), loc='center left')
     g.fig.suptitle(f'Separable patterns present in the {layer_of_interest} Layer')
     plt.tight_layout()
-    g.savefig(f"../derivatives/results/{title}.svg", format="svg")
+    g.savefig(f"../derivatives/results_layers3/{title}.svg", format="svg")
 
 def plotChangeMisalignment(accuracy, rho_values, CNR_change, percent_change, layer_of_interest, title):
     
@@ -155,9 +149,9 @@ def plotUnivar(response_old, response_new, rho_values, CNR_change, layer_of_inte
     df_combined = pd.concat([df_old, df_new])
     df_combined['Accuracy_zscore'] = df_combined.groupby(['Rho', 'CNR_change',"Response Type"])['Accuracy'].transform(lambda x: zscore(x, ddof=1))
 
-    plotLayersUni(df_combined, title, "Response Amplitude (a.u.)", layer_of_interest)
+    plotLayersUni(df_combined, title, "Response Amplitude (a.u.)", response_old.shape[0], layer_of_interest)
 
-def plotLayersUni(df, title, y_label, layer_of_interest=None):
+def plotLayersUni(df, title, y_label, numLayers, layer_of_interest=None):
     g = sns.FacetGrid(df, row='Rho', col='CNR_change', margin_titles=True, height=4, aspect=1)
     g.map_dataframe(sns.lineplot, x='Layer', y='Accuracy', hue='Response Type', 
         palette="Set1", errorbar=('se'), markers=True)
@@ -167,7 +161,7 @@ def plotLayersUni(df, title, y_label, layer_of_interest=None):
     g.add_legend(title="Response Type", bbox_to_anchor=(1, 0.5), loc='center left')
     g.fig.suptitle(f'Separable patterns present in the {layer_of_interest} Layer')
     plt.tight_layout()
-    g.savefig(f"../derivatives/results/{title}.svg", format="svg")
+    g.savefig(f"../derivatives/results_layers{numLayers}/{title}.svg", format="svg")
 
 def setup_df_noPercent(accuracy, layer_names, rho_values, CNR_change):
     accuracy_flat = accuracy.flatten()
@@ -201,10 +195,6 @@ def plotCNR(CNR, rho_values, CNR_change, title):
 
     if numLayers==3:
         layer_names = ["Deep", "Middle", "Superficial"]
-    elif numLayers==4:
-        layer_names = ["Deep", "Middle Deep", "Middle Superficial", "Superficial"] 
-    elif numLayers==9:
-        layer_names = ["1", "2", "3", "4", "5", "6", "7", "8", "9"] 
     elif numLayers==6:
         layer_names = ["1", "2", "3", "4", "5", "6"] 
 
@@ -239,4 +229,4 @@ def plotCNR(CNR, rho_values, CNR_change, title):
 
     # Show the plot
     plt.tight_layout()
-    g.savefig(f"../derivatives/results/{title}.svg",format="svg")
+    g.savefig(f"../derivatives/results_layers{numLayers}/{title}.svg",format="svg")
