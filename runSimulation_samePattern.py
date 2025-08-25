@@ -47,7 +47,6 @@ pathName = f'../derivatives/pipeline_files/Layers{layers}_Beta{beta}_Trials{numT
 Path(pathName).mkdir(parents=True, exist_ok=True)
 
 for it in range(iterations):
-    #for i in range(rval):
     for i,r in enumerate(rMatrix1):
         for ib,b in enumerate(CNR_change):
             

@@ -48,9 +48,9 @@ def runSixLayers(accuracy,output_name):
 
 def twoWayAnova(accuracy,output_name):
 
-    Path("../derivatives/stats").mkdir(parents=True, exist_ok=True)
+    Path("../derivatives/stats_layers3").mkdir(parents=True, exist_ok=True)
 
-    outputDir = f"../derivatives/stats/{output_name}.txt"
+    outputDir = f"../derivatives/stats_layers3/{output_name}.txt"
 
     if accuracy.shape[3]==1:
         accuracy = accuracy[:,:,:,0]
@@ -68,30 +68,8 @@ def twoWayAnova(accuracy,output_name):
     model = ols("Accuracy ~ C(Layer) * C(Size)", data=df).fit()
     anova_table = sm.stats.anova_lm(model, typ=2)
 
-#    data = {
-#        "Layer": np.repeat(np.arange(layers), subjects * rhos),
-#        "Size": np.tile(np.repeat(np.arange(rhos), subjects), layers),
-#        "Accuracy": accuracy.ravel()
-#            "Size": np.repeat(np.arange(rhos), subjects * layers),
-#            "Layer": np.tile(np.repeat(np.arange(layers), subjects), rhos),
-#            "Accuracy": accuracy.ravel()
-#            }
-#    df = pd.DataFrame(data)
-#    print(df.head(50))
-    
-    # Run two-way ANOVA with interaction
-#    model = ols("Accuracy ~ C(Layer) * C(Size)", data=df).fit()
-#    anova_table = sm.stats.anova_lm(model, typ=2)
-
     with open(outputDir, "w") as file:
         file.write("\t".join(["Row", "sum_sq", "df", "F", "PR(>F)"]) + "\n")
         file.write("-" * 50 + "\n")
         for index, row in anova_table.iterrows():
             file.write(f"{index}\t{row['sum_sq']}\t{row['df']}\t{row['F']}\t{row['PR(>F)']}\n")
-
-    
-    # Writing results to a text file
-#    with open(outputDir, "w") as file:
-#        file.write("Source\tSum Squares\tDf\tF-Statistic\tP-Value\n")
-#        for row in anova_table.itertuples():
-#            file.write(f"{row.Index}\t{row.sum_sq:.6f}\t{row.df}\t{row.F:.6f}\t{row['PR(>F)']:.6e}\n")
