@@ -28,7 +28,8 @@ if layers==3:
         1: "LayerOfIntMiddle",
         2: "LayerOfIntSuperficial",
         3: "LayerOfIntDifferent",
-        4: "LayerOfIntSame"
+        4: "LayerOfIntSame",
+        5: "LayerOfIntDeepandSuperficial"
     }
 
     name_dict2 = {
@@ -36,7 +37,8 @@ if layers==3:
         1: "Middle",
         2: "Superficial",
         3: "Different",
-        4: "Same"
+        4: "Same",
+        5: "Deep and Superficial"
     }
 
 sorted_folders = sorted(folders_layers, key=lambda x: next(i for i, suffix in name_dict.items() if x.endswith(suffix)))
@@ -81,6 +83,11 @@ for index, folder in enumerate(sorted_folders):
     elif index==4:
         accuracy_layerSubtraction = accuracy_new - accuracy_new[1, :,:,:] #subtract middle layer in same 
         accuracy_layerSubtraction[1,:,:,:] = accuracy_new[0,:,:,:] - accuracy_new[2,:,:,:]
+    
+    elif index==5:
+        accuracy_layerSubtraction = accuracy_new - accuracy_new[2, :,:,:] #subtract superficial layer in deepSup 
+        accuracy_layerSubtraction[2,:,:,:] = accuracy_new[0,:,:,:] - accuracy_new[1,:,:,:]
+
     else:
         accuracy_layerSubtraction = accuracy_new - accuracy_new[index, :,:,:]
 

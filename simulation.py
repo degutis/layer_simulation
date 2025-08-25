@@ -25,8 +25,8 @@ class VoxelResponses:
         self.layers = layers
 
         if self.layers%2==0:
-            self.layers_mriSampling = self.layers*3
-            self.N_depth_mriSampling = self.N_depth*3
+            self.layers_mriSampling = self.layers*10
+            self.N_depth_mriSampling = self.N_depth*10
             self.layers_mriSampling_start = (self.layers_mriSampling - self.layers) // 2
             self.N_depth_mriSampling_start = (self.N_depth_mriSampling - self.N_depth) // 2
 
@@ -98,8 +98,8 @@ class VoxelResponses:
         columnPattern = np.empty((self.N, self.N, self.N_depth))
         boldPattern = np.empty((self.N, self.N, self.N_depth))
 
-        padded_matrix_zeros = np.zeros((self.N, self.N, self.N_depth_mriSampling))
-        #gaussian_noise_matrix = np.random.normal(loc=1, scale=0.1, size=(self.N, self.N, self.N_depth_mriSampling))
+        # padded_matrix_zeros = np.zeros((self.N, self.N, self.N_depth_mriSampling))
+        padded_matrix_zeros = np.random.normal(loc=0.01, scale=0.001, size=(self.N, self.N, self.N_depth_mriSampling))
 
         seed_list = np.repeat(np.arange(seed, seed + self.layers), 3)
 
@@ -117,7 +117,6 @@ class VoxelResponses:
         #padded_matrix_zeros[:, :, self.N_depth:self.N_depth*2] = drainedSignal.outputMatrix.transpose(1, 2, 0)
         padded_matrix_zeros[:, :, self.N_depth_mriSampling_start:self.N_depth_mriSampling_start+self.N_depth] = drainedSignal.outputMatrix.transpose(1, 2, 0)
         
-        #padded_matrix_zeros += gaussian_noise_matrix
         mriPattern_extended = sim.mri(self.w, padded_matrix_zeros)
         # mriPattern = mriPattern_extended[:,:,self.layers:self.layers*2] 
         mriPattern = mriPattern_extended[:,:,self.layers_mriSampling_start:self.layers_mriSampling_start+self.layers] 
@@ -131,7 +130,8 @@ class VoxelResponses:
         columnPattern = np.empty((self.N, self.N, self.N_depth))
         boldPattern = np.empty((self.N, self.N, self.N_depth))
 
-        padded_matrix_zeros = np.zeros((self.N, self.N, self.N_depth_mriSampling))
+        # padded_matrix_zeros = np.zeros((self.N, self.N, self.N_depth_mriSampling))
+        padded_matrix_zeros = np.random.normal(loc=0.01, scale=0.001, size=(self.N, self.N, self.N_depth_mriSampling))
 
         if type(rho) == float:
             rho = np.repeat(rho,self.N_depth)
@@ -159,8 +159,11 @@ class VoxelResponses:
         boldPattern = np.empty((self.N, self.N, self.N_depth, self.numTrials_per_class))
         columnPattern = np.empty((self.N, self.N, self.N_depth, self.numTrials_per_class))
         drainedSignal_output = np.empty((self.N, self.N, self.N_depth, self.numTrials_per_class))
-        padded_matrix_zeros = np.zeros((self.N, self.N, self.N_depth_mriSampling, self.numTrials_per_class))
-        #gaussian_noise_matrix = np.random.normal(loc=1, scale=0.1, size=(self.N, self.N, self.N_depth_mriSampling, self.numTrials_per_class))
+
+        # padded_matrix_zeros = np.zeros((self.N, self.N, self.N_depth_mriSampling, self.numTrials_per_class))
+        padded_matrix_zeros = np.random.normal(loc=0.01, scale=0.001, size=(self.N, self.N, self.N_depth_mriSampling, self.numTrials_per_class))
+
+
         mriPattern_extended = np.empty((self.L, self.L, self.layers_mriSampling, self.numTrials_per_class))
         mriPattern = np.empty((self.L, self.L, self.layers, self.numTrials_per_class))
 
@@ -195,7 +198,10 @@ class VoxelResponses:
         boldPattern        = np.empty((self.N, self.N, self.N_depth, self.numTrials_per_class))
         columnPattern      = np.empty((self.N, self.N, self.N_depth, self.numTrials_per_class))
         drainedSignal_output = np.empty((self.N, self.N, self.N_depth, self.numTrials_per_class))
-        padded_matrix_zeros  = np.zeros((self.N, self.N, self.N_depth_mriSampling, self.numTrials_per_class))
+
+        # padded_matrix_zeros = np.zeros((self.N, self.N, self.N_depth_mriSampling, self.numTrials_per_class))
+        padded_matrix_zeros = np.random.normal(loc=0.01, scale=0.001, size=(self.N, self.N, self.N_depth_mriSampling, self.numTrials_per_class))
+        
         mriPattern_extended  = np.empty((self.L, self.L, self.layers_mriSampling, self.numTrials_per_class))
         mriPattern           = np.empty((self.L, self.L, self.layers, self.numTrials_per_class))
         
@@ -308,18 +314,6 @@ class VoxelResponses:
             return mriPattern + noiseMatrix
     
     def __calculateDepthScaling__(self,layers):
-        # original_array = np.array([1, 1.5, 2.1, 2.7, 3, 3.2, 3.8, 3.3, 3.2, 3.5, 3.2, 5.2, 6]) 
-        
-        # pad_length = len(original_array)  # Pad with the same length as the original array
-        # padded_array = np.pad(original_array, (pad_length, pad_length))
-        # fft_result = np.fft.fft(padded_array)
-
-        # truncated_fft = np.zeros_like(fft_result)
-        # truncated_fft[:layers] = fft_result[:layers]
-
-        # downsampled_array = np.real(np.fft.ifft(truncated_fft))
-        # centered_downsampled = downsampled_array[pad_length:pad_length + len(original_array)]
-        # return centered_downsampled[:layers]
 
         original_array = np.array([3, 3.7, 3.5]) # estimation based on Koopmans et al 2011 Figure 6c
         x_orig = np.linspace(0,1,len(original_array))
@@ -376,7 +370,9 @@ class VoxelResponses:
     def __changeVascModel__(self, seed, boldPattern, propChange):
             
         drainedSignal_output = np.empty((self.N, self.N, self.N_depth, self.numTrials_per_class))
-        padded_matrix_zeros = np.zeros((self.N, self.N, self.N_depth_mriSampling, self.numTrials_per_class))
+        # padded_matrix_zeros = np.zeros((self.N, self.N, self.N_depth_mriSampling, self.numTrials_per_class))
+        padded_matrix_zeros = np.random.normal(loc=0.01, scale=0.001, size=(self.N, self.N, self.N_depth_mriSampling, self.numTrials_per_class))
+        
         mriPattern_extended = np.empty((self.L, self.L, self.layers_mriSampling, self.numTrials_per_class))
         mriPattern = np.empty((self.L, self.L, self.layers, self.numTrials_per_class))
         

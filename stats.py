@@ -8,9 +8,9 @@ from statsmodels.formula.api import ols
 
 def runThreeLayers(accuracy,output_name):
     
-    Path("../derivatives/stats").mkdir(parents=True, exist_ok=True)
+    Path("../derivatives/stats_layers3").mkdir(parents=True, exist_ok=True)
 
-    outputDir = f"../derivatives/stats/{output_name}.txt"
+    outputDir = f"../derivatives/stats_layers3/{output_name}.txt"
         
     anova_three = stats.f_oneway(accuracy[0,:],accuracy[1,:], accuracy[2,:])
     deep_middle = stats.ttest_rel(accuracy[0,:],accuracy[1,:])
@@ -29,6 +29,22 @@ def runThreeLayers(accuracy,output_name):
         for result in results:
             file.write(f"{result[0]}\t{result[1]:.6f}\t{result[2]:.6e}\n")
 
+def runSixLayers(accuracy,output_name):
+    
+    Path("../derivatives/stats_layers6").mkdir(parents=True, exist_ok=True)
+
+    outputDir = f"../derivatives/stats_layers6/{output_name}.txt"
+        
+    anova_three = stats.f_oneway(accuracy[0,:],accuracy[1,:], accuracy[2,:], accuracy[3,:], accuracy[4,:], accuracy[5,:])
+
+    results = [
+    ("anova_three", float(anova_three.statistic), float(anova_three.pvalue))]
+
+    # Writing to a text file
+    with open(outputDir,"w") as file:
+        file.write("Test Name\Statistic\tP-Value\n")
+        for result in results:
+            file.write(f"{result[0]}\t{result[1]:.6f}\t{result[2]:.6e}\n")
 
 def twoWayAnova(accuracy,output_name):
 

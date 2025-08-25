@@ -7,14 +7,10 @@ from pathlib import Path
 import pickle as pkl
 import stats
 
-cf.createFolders()
-
 # Define some parameters
-layer_index = int(sys.argv[1])  # This defines the layers to decode (e.g., [9, 10, 11], etc.)
-# layer_index = 1
-print(layer_index)
-iterations=10
-layers = 3
+layer_index = int(sys.argv[1])
+iterations=20
+layers = 6
 rho_values = [0.4] 
 CNR_change = [1]
 rval = len(rho_values)
@@ -22,6 +18,8 @@ CNR_values = len(CNR_change)
 
 beta = 0.035
 numTrials_per_class = 50
+
+cf.createFolders(layers)
 
 if layers==3:
     layer_dict = {
@@ -35,7 +33,7 @@ if layers==3:
         0: "Deep",
         1: "Middle",
         2: "Superficial",
-        5: "Deep and Superficial"
+        5: "DeepandSuperficial"
     }
 
 elif layers==6:
@@ -45,17 +43,16 @@ elif layers==6:
         1: [6, 7, 8, 9, 10, 11],
         2: [12, 13, 14, 15, 16, 17],
         10: [0, 1, 2, 3, 4, 5, 12, 13, 14, 15, 16, 17],
-        11: [0, 1, 2, 3, 4, 5, 12, 13, 14, 15, 16, 17]
+        11: [0, 1, 2, 3, 4, 5, 12, 13, 14, 15, 16, 17],
+
     }
 
     name_dict = {
         0: "Deep",
         1: "Middle",
         2: "Superficial",
-        8: "Deep2 and Superficial2",
-        9: "Deep2 and Superficial2 Same PSF",
         10: "Deep and Superficial",
-        11: "Deep2 and Superficial2 Same PSF"
+        11: "Deep and Superficial Diff",
     }
 
 elif layers==9:
@@ -84,9 +81,9 @@ elif layers==9:
 pathName = f'../derivatives/pipeline_files/Layers{layers}_Beta{beta}_Trials{numTrials_per_class}_LayerOfInt{name_dict[layer_index]}'
 Path(pathName).mkdir(parents=True, exist_ok=True)
 
-accuracy_file = f'../derivatives/results/Accuracy_LayerResponse{str(layer_index)}_rho{str(rho_values)}_CNR{str(CNR_change)}.npy'
-cnr_uni_file = f'../derivatives/results/CNRUni_LayerResponse{str(layer_index)}_rho{str(rho_values)}_CNR{str(CNR_change)}.npy'
-cnr_multi_file = f'../derivatives/results/CNRMulti_LayerResponse{str(layer_index)}_rho{str(rho_values)}_CNR{str(CNR_change)}.npy'
+accuracy_file = f'../derivatives/results_layers{layers}/Accuracy_LayerResponse{str(layer_index)}_rho{str(rho_values)}_CNR{str(CNR_change)}.npy'
+cnr_uni_file = f'../derivatives/results_layers{layers}/CNRUni_LayerResponse{str(layer_index)}_rho{str(rho_values)}_CNR{str(CNR_change)}.npy'
+cnr_multi_file = f'../derivatives/results_layers{layers}/CNRMulti_LayerResponse{str(layer_index)}_rho{str(rho_values)}_CNR{str(CNR_change)}.npy'
 
 try:
     accuracy = np.load(accuracy_file)
@@ -111,7 +108,7 @@ except FileNotFoundError:
 
                 except:
                     
-                    if layer_index==9 or layer_index==11:
+                    if layer_index==9 or layer_index==11 or layer_index==12:
                         vox = sim.VoxelResponses(it,r,r, numTrials_per_class=numTrials_per_class, betaRange=betaRange, layers=layers, N_depth=layers*3, fwhmRange = [0.83, 0.83])                       
                     else:
                         vox = sim.VoxelResponses(it,r,r, numTrials_per_class=numTrials_per_class, betaRange=betaRange, layers=layers, N_depth=layers*3)                       
@@ -128,7 +125,11 @@ except FileNotFoundError:
     np.save(cnr_uni_file, cnr_uni)
     np.save(cnr_multi_file, cnr_multi)
 
-stats.runThreeLayers(accuracy,f'GRID_{name_dict[layer_index]}_rho{str(rho_values)}.txt')
+if layers==3:
+    stats.runThreeLayers(accuracy,f'GRID_{name_dict[layer_index]}_rho{str(rho_values)}.txt')
+elif layers==6:
+    stats.runSixLayers(accuracy,f'GRID_{name_dict[layer_index]}_rho{str(rho_values)}.txt')
+
 plotResults.plotViolin(accuracy, rho_values, CNR_change, f'GRID_{name_dict[layer_index]}_rho{str(rho_values)}')
 plotResults.plotCNR(cnr_uni, rho_values, CNR_change, f'CNRuni_{name_dict[layer_index]}_rho{str(rho_values)}')
 plotResults.plotCNR(cnr_multi, rho_values, CNR_change, f'CNRmulti_{name_dict[layer_index]}_rho{str(rho_values)}')

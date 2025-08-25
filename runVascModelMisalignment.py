@@ -17,7 +17,7 @@ CNR_change = [1]
 rval = len(rho_values)
 CNR_values = len(CNR_change)
 propChange=[-0.5,-0.2, -0.1, -0.05, -0.01, 0, 0.01, 0.05, 0.1, 0.2,0.5]
-
+print(propChange)
 folder_path = '../derivatives/pipeline_files/' 
 folders_layers = [f.name for f in os.scandir(folder_path) if f.is_dir() and f.name.startswith(f'Layers{layers}_Beta{beta}_Trials{trials}_LayerOfInt')]
 
@@ -28,7 +28,8 @@ if layers==3:
         1: "LayerOfIntMiddle",
         2: "LayerOfIntSuperficial",
         3: "LayerOfIntDifferent",
-        4: "LayerOfIntSame"
+        4: "LayerOfIntSame",
+        5: "LayerOfIntDeepandSuperficial"
     }
 
     name_dict2 = {
@@ -36,7 +37,8 @@ if layers==3:
         1: "Middle",
         2: "Superficial",
         3: "Different",
-        4: "Same"
+        4: "Same",
+        5: "Deep and Superficial"
     }
 
 sorted_folders = sorted(folders_layers, key=lambda x: next(i for i, suffix in name_dict.items() if x.endswith(suffix)))
@@ -86,6 +88,10 @@ for index, folder in enumerate(sorted_folders):
             elif index==4:
                 accuracy_layerSubtraction = accuracy_new - accuracy_new[1, :,:,:] #subtract middle layer in same 
                 accuracy_layerSubtraction[1,:,:,:] = accuracy_new[0,:,:,:] - accuracy_new[2,:,:,:]
+            
+            elif index==5:
+                accuracy_layerSubtraction = accuracy_new - accuracy_new[2, :,:,:] #subtract superficial layer in deepSup 
+                accuracy_layerSubtraction[2,:,:,:] = accuracy_new[0,:,:,:] - accuracy_new[1,:,:,:]
             else:
                 accuracy_layerSubtraction = accuracy_new - accuracy_new[index, :,:,:]
 

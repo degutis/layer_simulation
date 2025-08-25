@@ -7,13 +7,11 @@ from pathlib import Path
 import pickle as pkl
 import stats
 
-cf.createFolders()
-
 # Define some parameters
-layer_index = 7
+layer_index = 15
 print(layer_index)
 iterations=20
-layers = 3
+layers = 6
 rho_values = [0.4] 
 CNR_change = [1]
 rval = len(rho_values)
@@ -22,13 +20,24 @@ CNR_values = len(CNR_change)
 beta = 0.035
 numTrials_per_class = 50
 
+cf.createFolders(layers)
+
+
 if layers==3:
     layer_dict = {
         7: [[0,1,2],[6,7,8]]
     }
 
     name_dict = {
-        7: "Deep and Superficial Different Same PSF"
+        7: "DeepandSuperficialDifferent"
+    }
+
+elif layers==6:
+    layer_dict = {
+        15: [[0, 1, 2, 3, 4, 5],[12, 13, 14, 15, 16, 17]]
+    }
+    name_dict = {
+        15: "DeepandSuperficialDifferent"
     }
 
 pathName = f'../derivatives/pipeline_files/Layers{layers}_Beta{beta}_Trials{numTrials_per_class}_LayerOfInt{name_dict[layer_index]}'
@@ -53,7 +62,7 @@ except FileNotFoundError:
                         X, y = pkl.load(handle)
 
                 except:
-                    vox = sim.VoxelResponses(it,r,r, numTrials_per_class=numTrials_per_class, betaRange=betaRange, layers=layers, N_depth=layers*3, fwhmRange = [0.83, 0.83])
+                    vox = sim.VoxelResponses(it,r,r, numTrials_per_class=numTrials_per_class, betaRange=betaRange, layers=layers, N_depth=layers*3)
                     print(layer_dict[layer_index][0])
                     print(layer_dict[layer_index][1])
                     X,y,_,_,boldPattern1, boldPattern2 = vox.diffPatternsAcrossColumn_twoDecodable(layer_dict[layer_index][0], layer_dict[layer_index][1])

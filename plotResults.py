@@ -145,7 +145,7 @@ def plotTstat(accuracy, rho_values, CNR_change, percent_change, layer_of_interes
 
 def plotUnivar(response_old, response_new, rho_values, CNR_change, layer_of_interest, title):
     
-    layer_names = ["Deep", "Middle", "Superficial"] if response_old.shape[0] == 3 else ["Deep", "Middle Deep", "Middle Superficial", "Superficial"]
+    layer_names = ["Deep", "Middle", "Superficial"] if response_old.shape[0] == 3 else ["1", "2", "3", "4", "5", "6"]
     
     df_old = setup_df_noPercent(response_old, layer_names, rho_values, CNR_change)
     df_new = setup_df_noPercent(response_new, layer_names, rho_values, CNR_change)
