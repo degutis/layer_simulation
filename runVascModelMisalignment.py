@@ -5,6 +5,7 @@ import os
 import vasc_model as vm
 import plotResults
 from scipy import stats
+import re
 
 
 layers=3
@@ -17,9 +18,9 @@ CNR_change = [1]
 rval = len(rho_values)
 CNR_values = len(CNR_change)
 propChange=[-0.5,-0.2, -0.1, -0.05, -0.01, 0, 0.01, 0.05, 0.1, 0.2,0.5]
-print(propChange)
+
 folder_path = '../derivatives/pipeline_files/' 
-folders_layers = [f.name for f in os.scandir(folder_path) if f.is_dir() and f.name.startswith(f'Layers{layers}_Beta{beta}_Trials{trials}_LayerOfInt')]
+prefix = f'Layers{layers}_Beta{beta}_Trials{trials}_'
 
 if layers==3:
 
@@ -41,14 +42,28 @@ if layers==3:
         5: "Deep and Superficial"
     }
 
-sorted_folders = sorted(folders_layers, key=lambda x: next(i for i, suffix in name_dict.items() if x.endswith(suffix)))
-print(sorted_folders)
+
+allowed_suffixes = list(name_dict.values())
+order = {suffix: i for i, suffix in name_dict.items()}
+suffix_re = re.compile(r'^' + re.escape(prefix) + r'(' + '|'.join(map(re.escape, allowed_suffixes)) + r')$')
+
+folders_layers = [
+    entry.name
+    for entry in os.scandir(folder_path)
+    if entry.is_dir() and suffix_re.match(entry.name)
+]
+
+sorted_folders = sorted(
+    folders_layers,
+    key=lambda name: order[suffix_re.match(name).group(1)]
+)
+
 accuracy_new  = np.empty((layers, iterations, rval, CNR_values, len(propChange)))
 
 for index, folder in enumerate(sorted_folders):
     try:
-        accuracy_diff_file = f'../derivatives/results/Difference_Accuracy_VascChanges{index}_rho{(rho_values)}_CNR{str(CNR_change)}_MisProp{propChange}.npy'
-        tstat_file = f'../derivatives/results/Tstat_{index}_rho{(rho_values)}_CNR{str(CNR_change)}_MisProp{propChange}.npy'
+        accuracy_diff_file = f'../derivatives/results_layers{layers}/Difference_Accuracy_VascChanges{index}_rho{(rho_values)}_CNR{str(CNR_change)}_MisProp{propChange}.npy'
+        tstat_file = f'../derivatives/results_layers{layers}/Tstat_{index}_rho{(rho_values)}_CNR{str(CNR_change)}_MisProp{propChange}.npy'
 
         try:
             accuracy_diff = np.load(accuracy_diff_file)
@@ -75,7 +90,7 @@ for index, folder in enumerate(sorted_folders):
                             X_deconvolved = vm.deconvolve(X) # added a deconvolution step
                             accuracy_new[:,it,i,ib,ip] = vox.runSVM_classifier_acrossLayers(X_deconvolved, y)
 
-            accuracy_old = np.load(f'../derivatives/results/Accuracy_LayerResponse{index}_rho{(rho_values)}_CNR{str(CNR_change)}.npy')
+            accuracy_old = np.load(f'../derivatives/results_layers{layers}/Accuracy_LayerResponse{index}_rho{(rho_values)}_CNR{str(CNR_change)}.npy')
             if accuracy_old.ndim < 4:
                 accuracy_old = np.reshape(accuracy_old, accuracy_old.shape + (1,) * (4 - accuracy_old.ndim))
         
@@ -97,8 +112,8 @@ for index, folder in enumerate(sorted_folders):
 
             t_stat, _ = stats.ttest_1samp(accuracy_layerSubtraction, 0, axis=1)
             
-            np.save(f'../derivatives/results/Difference_Accuracy_VascChanges{index}_rho{(rho_values)}_CNR{str(CNR_change)}_MisProp{propChange}.npy', accuracy_diff)
-            np.save(f'../derivatives/results/Tstat_{index}_rho{(rho_values)}_CNR{str(CNR_change)}_MisProp{propChange}.npy', t_stat)
+            np.save(f'../derivatives/results_layers{layers}/Difference_Accuracy_VascChanges{index}_rho{(rho_values)}_CNR{str(CNR_change)}_MisProp{propChange}.npy', accuracy_diff)
+            np.save(f'../derivatives/results_layers{layers}/Tstat_{index}_rho{(rho_values)}_CNR{str(CNR_change)}_MisProp{propChange}.npy', t_stat)
 
         plotResults.plotChangeMisalignment(accuracy_diff, rho_values, CNR_change, propChange, name_dict2[index], f'VascModelChange{name_dict2[index]}_rho{(rho_values)}')   
         plotResults.plotTstat(t_stat, rho_values, CNR_change, propChange, name_dict2[index], f'VascModelChange_Ttest{name_dict2[index]}_rho{(rho_values)}')

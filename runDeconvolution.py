@@ -6,10 +6,9 @@ import simulation as sim
 import plotResults
 import vasc_model as vm
 import stats
-from scipy.stats import zscore
+import re
 
-
-layers=6 #layers=3
+layers=3 #layers=6
 beta=0.035
 trials = 50
 iterations=20
@@ -20,9 +19,7 @@ CNR_values = len(CNR_change)
 voxels = 256
 
 folder_path = '../derivatives/pipeline_files/' 
-print(f'Layers{layers}_Beta{beta}_Trials{trials}_LayerOfInt')
-folders_layers = [f.name for f in os.scandir(folder_path) if f.is_dir() and f.name.startswith(f'Layers{layers}_Beta{beta}_Trials{trials}_LayerOfInt')]
-print(folders_layers)
+prefix = f'Layers{layers}_Beta{beta}_Trials{trials}_'
 
 if layers==3:
 
@@ -48,7 +45,6 @@ elif layers==6:
         1: "LayerOfIntMiddle",
         2: "LayerOfIntSuperficial",
         3: "LayerOfIntDeepandSuperficial",
-
     }
 
     name_dict2 = {
@@ -58,7 +54,21 @@ elif layers==6:
         3: "Deep and Superficial",
     }
 
-sorted_folders = sorted(folders_layers, key=lambda x: next(i for i, suffix in name_dict.items() if x.endswith(suffix)))
+allowed_suffixes = list(name_dict.values())
+order = {suffix: i for i, suffix in name_dict.items()}
+suffix_re = re.compile(r'^' + re.escape(prefix) + r'(' + '|'.join(map(re.escape, allowed_suffixes)) + r')$')
+
+folders_layers = [
+    entry.name
+    for entry in os.scandir(folder_path)
+    if entry.is_dir() and suffix_re.match(entry.name)
+]
+
+sorted_folders = sorted(
+    folders_layers,
+    key=lambda name: order[suffix_re.match(name).group(1)]
+)
+
 X_new  = np.empty((trials*2, voxels, layers,iterations, rval, CNR_values))
 
 accuracy_new  = np.empty((layers, iterations, rval, CNR_values))

@@ -8,10 +8,10 @@ import pickle as pkl
 import stats
 
 # Define some parameters
-layer_index = 15 # layer_index = 7
+layer_index = 7 # layer_index = 15
 print(layer_index)
 iterations=20
-layers = 6 #layers = 3
+layers = 3 #layers = 6
 rho_values = [0.4] 
 CNR_change = [1]
 rval = len(rho_values)
@@ -21,7 +21,6 @@ beta = 0.035
 numTrials_per_class = 50
 
 cf.createFolders(layers)
-
 
 if layers==3:
     layer_dict = {
@@ -43,7 +42,7 @@ elif layers==6:
 pathName = f'../derivatives/pipeline_files/Layers{layers}_Beta{beta}_Trials{numTrials_per_class}_LayerOfInt{name_dict[layer_index]}'
 Path(pathName).mkdir(parents=True, exist_ok=True)
 
-accuracy_file = f'../derivatives/results/Accuracy_LayerResponse{str(layer_index)}_rho{str(rho_values)}_CNR{str(CNR_change)}.npy'
+accuracy_file = f'../derivatives/results_layers{layers}/Accuracy_LayerResponse{str(layer_index)}_rho{str(rho_values)}_CNR{str(CNR_change)}.npy'
 
 try:
     accuracy = np.load(accuracy_file)

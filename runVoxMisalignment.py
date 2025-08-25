@@ -4,6 +4,7 @@ import pickle as pkl
 import os
 import plotResults
 from scipy import stats
+import re
 
 percent_change=[1,5,10,15,20,30,40]
 
@@ -19,7 +20,7 @@ CNR_values = len(CNR_change)
 voxels = 256
 
 folder_path = '../derivatives/pipeline_files/' 
-folders_layers = [f.name for f in os.scandir(folder_path) if f.is_dir() and f.name.startswith(f'Layers{layers}_Beta{beta}_Trials{trials}_LayerOfInt')]
+prefix = f'Layers{layers}_Beta{beta}_Trials{trials}_'
 
 if layers==3:
 
@@ -41,8 +42,20 @@ if layers==3:
         5: "Deep and Superficial"
     }
 
-sorted_folders = sorted(folders_layers, key=lambda x: next(i for i, suffix in name_dict.items() if x.endswith(suffix)))
-print(sorted_folders)
+allowed_suffixes = list(name_dict.values())
+order = {suffix: i for i, suffix in name_dict.items()}
+suffix_re = re.compile(r'^' + re.escape(prefix) + r'(' + '|'.join(map(re.escape, allowed_suffixes)) + r')$')
+
+folders_layers = [
+    entry.name
+    for entry in os.scandir(folder_path)
+    if entry.is_dir() and suffix_re.match(entry.name)
+]
+
+sorted_folders = sorted(
+    folders_layers,
+    key=lambda name: order[suffix_re.match(name).group(1)]
+)
 
 X = np.empty((trials*2, voxels, layers,iterations, rval, CNR_values, len(sorted_folders)))
 X_new  = np.empty((trials*2, voxels, layers,iterations, rval, CNR_values, len(percent_change)))
@@ -67,7 +80,7 @@ for index, folder in enumerate(sorted_folders):
                     X_new[:,:,:,it,i,ib,ip] = sim.missegmentationVox(X_loaded, percent, input_seed)                   
                     accuracy_new[:,it,i,ib,ip] = vox.runSVM_classifier_acrossLayers(X_new[:,:,:,it,i,ib,ip], y)
 
-    accuracy_old = np.load(f'../derivatives/results/Accuracy_LayerResponse{index}_rho{(rho_values)}_CNR{str(CNR_change)}.npy')
+    accuracy_old = np.load(f'../derivatives/results_layers{layers}/Accuracy_LayerResponse{index}_rho{(rho_values)}_CNR{str(CNR_change)}.npy')
     
     if accuracy_old.ndim < 4:
         accuracy_old = np.reshape(accuracy_old, accuracy_old.shape + (1,) * (4 - accuracy_old.ndim))
@@ -91,8 +104,8 @@ for index, folder in enumerate(sorted_folders):
 
     t_stat, _ = stats.ttest_1samp(accuracy_layerSubtraction, 0, axis=1)
 
-    np.save(f'../derivatives/results/Difference_Accuracy_LayerResponse{index}_rho{(rho_values)}_CNR{str(CNR_change)}_MisPerc{percent_change}.npy', accuracy_diff)
-    np.save(f'../derivatives/results/Difference_Accuracy_LayerResponse{index}_rho{(rho_values)}_CNR{str(CNR_change)}_MisPerc{percent_change}.npy', t_stat)  
+    np.save(f'../derivatives/results_layers{layers}/Difference_Accuracy_LayerResponse{index}_rho{(rho_values)}_CNR{str(CNR_change)}_MisPerc{percent_change}.npy', accuracy_diff)
+    np.save(f'../derivatives/results_layers{layers}/Difference_Accuracy_LayerResponse{index}_rho{(rho_values)}_CNR{str(CNR_change)}_MisPerc{percent_change}.npy', t_stat)  
     
     plotResults.plotChangeMisalignment(accuracy_diff, rho_values, CNR_change, percent_change, name_dict2[index], f'MisalignmentChange{name_dict2[index]}')
     plotResults.plotTstat(t_stat, rho_values, CNR_change, percent_change, name_dict2[index], f'MisalignmentLayersChange{name_dict2[index]}')

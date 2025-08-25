@@ -10,7 +10,7 @@ import stats
 # Define some parameters
 layer_index = int(sys.argv[1])
 iterations=20
-layers = 6 #layers = 3
+layers = 3 #layers = 3
 rho_values = [0.4] 
 CNR_change = [1]
 rval = len(rho_values)

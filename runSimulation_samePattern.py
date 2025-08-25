@@ -8,15 +8,14 @@ import numpy as np
 import pickle as pkl
 from pathlib import Path
 
-cf.createFolders()
-
 # Define some parameters 3/4/5 for diff/same/same_psf
-layer_index = 3 
-# also add same FWHM
+layer_index = 5 
 
 iterations=20
 layers = 3
 depths = layers*3
+
+cf.createFolders(layers)
 
 rho_initial_values = np.arange(0.2, 0.7, 0.1)
 rho_matrix = np.array([[np.round(start + i * 0.05, 3) for i in range(depths)] for start in rho_initial_values])
@@ -89,11 +88,11 @@ for i,r in enumerate(rMatrix1):
     rho_current = [r]
     for ib,b in enumerate(CNR_change):
         CNR_current = [b]
-        accuracy_file = f'../derivatives/results/Accuracy_LayerResponse{str(layer_index)}_rho{str(rho_current)}_CNR{str(CNR_current)}.npy'
+        accuracy_file = f'../derivatives/results_layers{layers}/Accuracy_LayerResponse{str(layer_index)}_rho{str(rho_current)}_CNR{str(CNR_current)}.npy'
         np.save(accuracy_file, accuracy[:,:,i,ib])
         stats.runThreeLayers(accuracy[:,:,i,ib],f'Null_{name_dict[layer_index]}_CNR_{CNR_current}_rho_{rho_current}.txt')
 
-        accuracy_file_dec = f'../derivatives/results/Deconvolution_Accuracy_LayerResponse{str(layer_index)}_rho{str(rho_current)}_CNR{str(CNR_current)}.npy'
+        accuracy_file_dec = f'../derivatives/results_layers{layers}/Deconvolution_Accuracy_LayerResponse{str(layer_index)}_rho{str(rho_current)}_CNR{str(CNR_current)}.npy'
         np.save(accuracy_file_dec, accuracy_deconvolved[:,:,i,ib])
         stats.runThreeLayers(accuracy_deconvolved[:,:,i,ib],f'{name_dict[layer_index]}_Deconvolved_CNR_{CNR_current}_rho_{rho_current}.txt')
 
