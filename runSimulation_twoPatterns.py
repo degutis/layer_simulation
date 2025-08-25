@@ -8,10 +8,10 @@ import pickle as pkl
 import stats
 
 # Define some parameters
-layer_index = 15
+layer_index = 15 # layer_index = 7
 print(layer_index)
 iterations=20
-layers = 6
+layers = 6 #layers = 3
 rho_values = [0.4] 
 CNR_change = [1]
 rval = len(rho_values)

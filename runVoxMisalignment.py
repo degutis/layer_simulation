@@ -50,8 +50,6 @@ X_new  = np.empty((trials*2, voxels, layers,iterations, rval, CNR_values, len(pe
 accuracy_new  = np.empty((layers, iterations, rval, CNR_values, len(percent_change)))
 
 for index, folder in enumerate(sorted_folders):
-    print(index)
-    print(folder)
     for i,r in enumerate(rho_values):
         for ib,b in enumerate(CNR_change):
             for it in range(iterations):

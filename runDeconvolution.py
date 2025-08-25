@@ -9,7 +9,7 @@ import stats
 from scipy.stats import zscore
 
 
-layers=6
+layers=6 #layers=3
 beta=0.035
 trials = 50
 iterations=20

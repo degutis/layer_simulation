@@ -77,7 +77,6 @@ class vascModel:
         for i, sigma in enumerate(sigma_values):
             x = np.arange(matrix_size)
             gaussian = norm.pdf(x, loc=i, scale=sigma)  
-            #transformation_matrix[i, :] = gaussian
             transformation_matrix[i, :] = gaussian/gaussian.sum()
         
         if diagonalOne:

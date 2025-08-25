@@ -10,7 +10,7 @@ import stats
 # Define some parameters
 layer_index = int(sys.argv[1])
 iterations=20
-layers = 6
+layers = 6 #layers = 3
 rho_values = [0.4] 
 CNR_change = [1]
 rval = len(rho_values)
@@ -54,29 +54,6 @@ elif layers==6:
         10: "Deep and Superficial",
         11: "Deep and Superficial Diff",
     }
-
-elif layers==9:
-    
-    layer_dict = {
-        0: [0, 1, 2, 3, 4, 5, 6, 7, 8],
-        1: [9, 10, 11, 12, 13, 14, 15, 16, 17],
-        2: [18, 19, 20, 21, 22, 23, 24, 25, 26],
-        8: [3,4,5, 21, 22, 23],
-        9: [3,4,5, 21, 22, 23],
-        10: [0, 1, 2, 3, 4, 5, 6, 7, 8, 18, 19, 20, 21, 22, 23, 24, 25, 26],
-        11: [0, 1, 2, 3, 4, 5, 6, 7, 8, 18, 19, 20, 21, 22, 23, 24, 25, 26]
-    }
-
-    name_dict = {
-        0: "Deep",
-        1: "Middle",
-        2: "Superficial",
-        8: "Deep2 and Superficial2",
-        9: "Deep2 and Superficial2 Same PSF",
-        10: "Deep and Superficial",
-        11: "Deep2 and Superficial2 Same PSF"
-    }
-
 
 pathName = f'../derivatives/pipeline_files/Layers{layers}_Beta{beta}_Trials{numTrials_per_class}_LayerOfInt{name_dict[layer_index]}'
 Path(pathName).mkdir(parents=True, exist_ok=True)
