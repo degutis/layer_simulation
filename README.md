@@ -44,9 +44,9 @@ All simulations and analyses are implemented in **Python**. The main simulation 
 ## Requirements  
 
 - Python 3.x  
-- Standard scientific Python stack (NumPy, SciPy, Matplotlib)  
+- Standard scientific Python stack (NumPy, SciPy, Matplotlib, Seaborn, Pandas, Scikit-lean, statsmodels)
 
-(All dependencies found in `requirements.txt`)  
+(Found in `requirements.txt`)  
 
 ---
 
