@@ -1,0 +1,5 @@
+Test Name\Statistic	P-Value
+anova_three	0.083959	9.195827e-01
+deep_middle	-0.390219	7.007150e-01
+middle_sup	0.067572	9.468324e-01
+deep_sup	-0.317530	7.543044e-01

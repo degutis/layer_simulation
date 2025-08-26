@@ -1,0 +1,2 @@
+Test Name\Statistic	P-Value
+anova_three	202.827823	5.188801e-55
