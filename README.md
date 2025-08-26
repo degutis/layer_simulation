@@ -2,6 +2,8 @@
 
 by **Jonas Karolis Degutis, Denis Chaimow, Romy Lorenz**  
 
+[![DOI](https://zenodo.org/badge/860433790.svg)](https://doi.org/10.5281/zenodo.16947105)
+
 ---
 
 ## Overview  
